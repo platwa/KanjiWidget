@@ -1,0 +1,67 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "KanjiWidget",
+  "version": "1.2.0",
+  "identifier": "com.kanjiwidget.desktop",
+  "build": {
+    "beforeDevCommand": "pnpm dev",
+    "devUrl": "http://127.0.0.1:1420",
+    "beforeBuildCommand": "pnpm build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "KanjiWidget",
+        "width": 340,
+        "height": 300,
+        "minWidth": 280,
+        "minHeight": 270,
+        "resizable": true,
+        "decorations": false,
+        "transparent": true,
+        "shadow": false,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "visible": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' data:; font-src 'self'; style-src 'self' 'unsafe-inline'; connect-src ipc: http://ipc.localhost"
+    }
+  },
+  "plugins": {
+    "sql": {
+      "preload": ["sqlite:kanjiwidget.db"]
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["msi", "nsis"],
+    "publisher": "KanjiWidget",
+    "copyright": "© 2026 KanjiWidget",
+    "category": "Education",
+    "shortDescription": "Минималистичный виджет для изучения японских кандзи",
+    "longDescription": "Офлайн-виджет с интервальными повторениями FSRS, тестами и колодами JLPT N5/N4.",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "windows": {
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper",
+        "silent": true
+      },
+      "nsis": {
+        "displayLanguageSelector": false,
+        "installerIcon": "icons/icon.ico",
+        "languages": ["Russian", "English"],
+        "installMode": "currentUser"
+      }
+    }
+  }
+}

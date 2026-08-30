@@ -1,0 +1,209 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { BookOpenCheck, ChevronLeft, ChevronRight, Grip, LogOut, Pause, Pencil, Play, Settings2 } from 'lucide-react'
+import { KanjiCard } from '../components/KanjiCard'
+import { DEFAULT_SETTINGS } from '../domain/defaults'
+import type { AppSettings, Card } from '../domain/types'
+import {
+  applyWidgetWindowSettings,
+  beginWidgetDrag,
+  endWidgetDrag,
+  exitApplication,
+  exportLockscreenCard,
+  listenAppEvent,
+  moveWidgetDrag,
+  openAppWindow,
+  openCardEditor,
+  startWidgetResize,
+} from '../services/platform'
+import { buildDailyPool, buildQuizPool, loadSettings } from '../services/storage'
+
+function shuffle<T>(items: T[]) {
+  const copy = [...items]
+  for (let index = copy.length - 1; index > 0; index -= 1) {
+    const target = Math.floor(Math.random() * (index + 1))
+    ;[copy[index], copy[target]] = [copy[target], copy[index]]
+  }
+  return copy
+}
+
+export function WidgetView() {
+  const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS)
+  const [cards, setCards] = useState<Card[]>([])
+  const [index, setIndex] = useState(0)
+  const [revealed, setRevealed] = useState(false)
+  const [paused, setPaused] = useState(false)
+  const [contextOpen, setContextOpen] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const wheelLocked = useRef(false)
+  const quizActive = useRef(false)
+
+  const refresh = useCallback(async () => {
+    const nextSettings = await loadSettings()
+    const pool = quizActive.current ? await buildQuizPool(nextSettings) : await buildDailyPool(nextSettings)
+    setSettings(nextSettings)
+    setCards((current) => {
+      const nextCards = new Map(pool.map((card) => [card.id, card]))
+      const sameMembership = current.length === pool.length && current.every((card) => nextCards.has(card.id))
+      if (!sameMembership) return shuffle(pool)
+      const ordered = current.map((card) => nextCards.get(card.id)!)
+      const contentChanged = current.some((card, cardIndex) => JSON.stringify(card) !== JSON.stringify(ordered[cardIndex]))
+      return contentChanged ? ordered : current
+    })
+    setIndex((current) => pool.length ? Math.min(current, pool.length - 1) : 0)
+    setLoading(false)
+    await applyWidgetWindowSettings(nextSettings)
+  }, [])
+
+  useEffect(() => {
+    void refresh()
+    const cleanups = [
+      listenAppEvent('kanjiwidget:settings-changed', refresh),
+      listenAppEvent('kanjiwidget:pool-changed', refresh),
+      listenAppEvent('kanjiwidget:quiz-session-started', () => {
+        quizActive.current = true
+        void refresh()
+      }),
+      listenAppEvent('kanjiwidget:quiz-session-ended', () => {
+        quizActive.current = false
+        void refresh()
+      }),
+    ]
+    return () => { void Promise.all(cleanups).then((items) => items.forEach((cleanup) => cleanup())) }
+  }, [refresh])
+
+  const currentCard = cards[index]
+  const next = useCallback(() => {
+    if (!cards.length) return
+    setIndex((value) => {
+      if (value + 1 >= cards.length) {
+        setCards((current) => {
+          const mixed = shuffle(current)
+          if (mixed.length > 1 && mixed[0].id === current[current.length - 1].id) {
+            ;[mixed[0], mixed[1]] = [mixed[1], mixed[0]]
+          }
+          return mixed
+        })
+        return 0
+      }
+      return value + 1
+    })
+    setRevealed(false)
+    setContextOpen(false)
+  }, [cards.length])
+  const previous = useCallback(() => {
+    if (!cards.length) return
+    setIndex((value) => (value - 1 + cards.length) % cards.length)
+    setRevealed(false)
+    setContextOpen(false)
+  }, [cards.length])
+
+  useEffect(() => {
+    const cleanup = listenAppEvent('kanjiwidget:next-card', next)
+    return () => { void cleanup.then((dispose) => dispose()) }
+  }, [next])
+
+  useEffect(() => {
+    const [hours, minutes] = settings.poolRefreshTime.split(':').map(Number)
+    const now = new Date()
+    const nextRefresh = new Date(now)
+    nextRefresh.setHours(hours, minutes, 0, 0)
+    if (nextRefresh <= now) nextRefresh.setDate(nextRefresh.getDate() + 1)
+    const timer = window.setTimeout(refresh, nextRefresh.getTime() - now.getTime() + 500)
+    return () => window.clearTimeout(timer)
+  }, [refresh, settings.poolRefreshTime])
+
+  useEffect(() => {
+    const timer = window.setInterval(() => { void refresh() }, 30_000)
+    return () => window.clearInterval(timer)
+  }, [refresh])
+
+  useEffect(() => {
+    if (paused || contextOpen || !cards.length) return
+    const timer = window.setInterval(next, settings.rotateIntervalSec * 1000)
+    return () => window.clearInterval(timer)
+  }, [cards.length, contextOpen, next, paused, settings.rotateIntervalSec])
+
+  useEffect(() => {
+    if (currentCard) void exportLockscreenCard(currentCard, settings).catch(console.error)
+  }, [currentCard, settings])
+
+  const conceal = settings.displayMode === 'quiz' && !revealed
+  const rootStyle = useMemo(() => ({ '--widget-opacity': settings.opacity } as React.CSSProperties), [settings.opacity])
+
+  const handleCardClick = (event: React.MouseEvent) => {
+    if (contextOpen) return setContextOpen(false)
+    if (event.ctrlKey) return previous()
+    if (settings.displayMode === 'quiz' && !revealed) return setRevealed(true)
+    next()
+  }
+
+  const handleWheel = (event: React.WheelEvent) => {
+    if (wheelLocked.current) return
+    wheelLocked.current = true
+    if (event.deltaY < 0) previous()
+    else next()
+    window.setTimeout(() => { wheelLocked.current = false }, 220)
+  }
+
+  return (
+    <main
+      className={`widget-shell theme-${settings.theme} font-${settings.fontSize}`}
+      style={rootStyle}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => { setPaused(false); setContextOpen(false) }}
+      onWheel={handleWheel}
+      onContextMenu={(event) => { event.preventDefault(); setContextOpen(true) }}
+    >
+      <div
+        className="widget-drag-region"
+        aria-label="Переместить виджет"
+        onPointerDown={(event) => {
+          if (event.button !== 0) return
+          event.preventDefault()
+          event.currentTarget.setPointerCapture(event.pointerId)
+          void beginWidgetDrag(event.screenX, event.screenY)
+        }}
+        onPointerMove={(event) => {
+          if ((event.buttons & 1) !== 0) moveWidgetDrag(event.screenX, event.screenY)
+        }}
+        onPointerUp={(event) => {
+          event.currentTarget.releasePointerCapture(event.pointerId)
+          endWidgetDrag()
+        }}
+        onPointerCancel={endWidgetDrag}
+      >
+        <Grip size={14} aria-hidden="true" />
+      </div>
+      <button className="widget-main" type="button" onClick={handleCardClick} aria-label="Следующая карточка">
+        {loading ? (
+          <div className="widget-loading"><span /><span /><span /></div>
+        ) : currentCard ? (
+          <div className="card-transition" key={`${currentCard.id}-${revealed}`}>
+            <KanjiCard card={currentCard} settings={settings} concealed={conceal} />
+          </div>
+        ) : (
+          <div className="widget-empty">Колода пуста</div>
+        )}
+      </button>
+
+      <div className="widget-hud">
+        <button type="button" onClick={previous} aria-label="Предыдущая"><ChevronLeft size={16} /></button>
+        <span className="pool-position">{cards.length ? index + 1 : 0}<i>/</i>{cards.length}</span>
+        <span className="pause-indicator">{paused ? <Pause size={11} /> : <Play size={11} />}</span>
+        <button type="button" aria-label="Редактировать текущую карточку" title="Редактировать карточку" disabled={!currentCard} onClick={() => { if (currentCard) void openCardEditor(settings.deckId, currentCard.id) }}><Pencil size={13} /></button>
+        <button type="button" onClick={next} aria-label="Следующая"><ChevronRight size={16} /></button>
+      </div>
+
+      {contextOpen && (
+        <div className="widget-context-menu" role="menu">
+          <button type="button" onClick={next}><ChevronRight size={15} />Следующая</button>
+          <button type="button" onClick={() => openAppWindow('quiz')}><BookOpenCheck size={15} />Открыть тест</button>
+          <button type="button" disabled={!currentCard} onClick={() => { if (currentCard) void openCardEditor(settings.deckId, currentCard.id) }}><Pencil size={15} />Редактировать карточку</button>
+          <button type="button" onClick={() => openAppWindow('settings')}><Settings2 size={15} />Настройки</button>
+          <button type="button" onClick={exitApplication}><LogOut size={15} />Выход</button>
+        </div>
+      )}
+      <button className="resize-handle" type="button" aria-label="Изменить размер" onMouseDown={startWidgetResize} />
+    </main>
+  )
+}
