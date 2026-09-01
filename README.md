@@ -60,7 +60,9 @@ The `output` directory contains three Windows x64 packages for version 1.3.0:
 - `KanjiWidget-1.3.0-x64.msi` — MSI package for managed deployment;
 - `KanjiWidget-1.3.0-x64-Portable.exe` — portable build that requires no installation.
 
-`SHA256SUMS-1.3.0.txt` contains SHA-256 checksums. Public releases are currently unsigned, so Windows SmartScreen and some heuristic scanners may warn about an unfamiliar publisher. The checksums and reproducible source build make the packages verifiable; an Authenticode certificate is recommended before wider distribution.
+`SHA256SUMS-1.3.0.txt` contains SHA-256 checksums. Public releases are currently unsigned, so Windows SmartScreen and some heuristic scanners may warn about an unfamiliar publisher. The checksums and reproducible source build make the packages verifiable.
+
+KanjiWidget is applying for **free code signing provided by [SignPath.io](https://signpath.io/), certificate by [SignPath Foundation](https://signpath.org/)**. After approval, official signed packages will be built only from this public repository by GitHub Actions; version 1.3.0 remains unsigned.
 
 ## Privacy and trust
 
