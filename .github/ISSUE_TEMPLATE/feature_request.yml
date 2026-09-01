@@ -1,0 +1,36 @@
+name: Feature request / Предложить функцию
+description: Suggest a focused improvement / Предложить конкретное улучшение
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or study need / Проблема или учебная потребность
+      description: What is difficult today, and in which workflow? / Что сейчас неудобно и в каком сценарии?
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Suggested solution / Предлагаемое решение
+      description: Describe the smallest change that would help. / Опишите минимальное изменение, которое поможет.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives tried / Что уже пробовали
+      description: Optional. / Необязательно.
+  - type: dropdown
+    id: priority
+    attributes:
+      label: How often would you use it? / Как часто это пригодится?
+      options:
+        - Every day / Каждый день
+        - Every week / Каждую неделю
+        - Occasionally / Иногда
+        - One time / Один раз
+    validations:
+      required: true

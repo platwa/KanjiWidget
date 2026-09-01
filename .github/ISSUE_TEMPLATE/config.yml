@@ -1,1 +1,5 @@
-blank_issues_enabled: false
+blank_issues_enabled: true
+contact_links:
+  - name: Private support email / Почта поддержки
+    url: https://github.com/platwa/KanjiWidget#support-and-bug-reports
+    about: Use email when a public issue is not appropriate. / Используйте почту, если публичный Issue не подходит.
