@@ -1,0 +1,36 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.12.0.schema.json
+
+PackageIdentifier: KanjiWidget.KanjiWidget
+PackageVersion: 1.3.0
+PackageLocale: en-US
+Publisher: KanjiWidget
+PublisherUrl: https://github.com/platwa/KanjiWidget
+PublisherSupportUrl: https://github.com/platwa/KanjiWidget/issues
+PrivacyUrl: https://github.com/platwa/KanjiWidget/blob/main/PRIVACY.md
+Author: platwa
+PackageName: KanjiWidget
+PackageUrl: https://github.com/platwa/KanjiWidget
+License: Apache-2.0
+LicenseUrl: https://github.com/platwa/KanjiWidget/blob/main/LICENSE
+Copyright: Copyright 2026 KanjiWidget
+ShortDescription: A calm offline Windows widget for learning Japanese kanji
+Description: KanjiWidget keeps Japanese kanji quietly visible on the Windows desktop and schedules Anki-style reviews with FSRS. It includes JLPT N5/N4 decks, examples with furigana, editable custom decks, and direct text-only import from Anki .apkg files. No account, advertising, analytics, or telemetry is required.
+Moniker: kanjiwidget
+Tags:
+  - anki
+  - flashcards
+  - fsrs
+  - japanese
+  - jlpt
+  - kanji
+  - language-learning
+  - offline
+  - spaced-repetition
+Documentations:
+  - DocumentLabel: Project documentation
+    DocumentUrl: https://github.com/platwa/KanjiWidget#readme
+  - DocumentLabel: Privacy statement
+    DocumentUrl: https://github.com/platwa/KanjiWidget/blob/main/PRIVACY.md
+ReleaseNotesUrl: https://github.com/platwa/KanjiWidget/releases/tag/v1.3.0
+ManifestType: defaultLocale
+ManifestVersion: 1.12.0

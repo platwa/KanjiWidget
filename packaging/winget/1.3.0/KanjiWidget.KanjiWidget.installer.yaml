@@ -1,0 +1,19 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.12.0.schema.json
+
+PackageIdentifier: KanjiWidget.KanjiWidget
+PackageVersion: 1.3.0
+InstallerType: nullsoft
+Scope: user
+UpgradeBehavior: install
+ReleaseDate: 2026-09-01
+Installers:
+  - Architecture: x64
+    InstallerUrl: https://github.com/platwa/KanjiWidget/releases/download/v1.3.0/KanjiWidget-1.3.0-x64-Setup.exe
+    InstallerSha256: 1FF05B04CAD3310034B59CE6385DE99D1EEAC4E9EAAF74C46C5365F589BB6E92
+    AppsAndFeaturesEntries:
+      - DisplayName: KanjiWidget
+        Publisher: KanjiWidget
+        DisplayVersion: 1.3.0
+        InstallerType: nullsoft
+ManifestType: installer
+ManifestVersion: 1.12.0

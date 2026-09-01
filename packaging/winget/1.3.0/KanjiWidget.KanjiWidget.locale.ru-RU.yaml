@@ -1,0 +1,31 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.locale.1.12.0.schema.json
+
+PackageIdentifier: KanjiWidget.KanjiWidget
+PackageVersion: 1.3.0
+PackageLocale: ru-RU
+Publisher: KanjiWidget
+PublisherUrl: https://github.com/platwa/KanjiWidget
+PublisherSupportUrl: https://github.com/platwa/KanjiWidget/issues
+PrivacyUrl: https://github.com/platwa/KanjiWidget/blob/main/PRIVACY.md
+PackageName: KanjiWidget
+PackageUrl: https://github.com/platwa/KanjiWidget
+License: Apache-2.0
+LicenseUrl: https://github.com/platwa/KanjiWidget/blob/main/LICENSE
+ShortDescription: Спокойный офлайн-виджет для изучения японских кандзи в Windows
+Description: KanjiWidget показывает карточки с японскими кандзи на рабочем столе Windows и планирует повторения в стиле Anki по алгоритму FSRS. В приложении есть колоды JLPT N5/N4, примеры с фуриганой, редактируемые собственные колоды и прямой импорт текста из файлов Anki .apkg. Аккаунт, реклама, аналитика и телеметрия отсутствуют.
+Tags:
+  - anki
+  - jlpt
+  - kanji
+  - карточки
+  - кандзи
+  - интервальные-повторения
+  - японский-язык
+Documentations:
+  - DocumentLabel: Документация проекта
+    DocumentUrl: https://github.com/platwa/KanjiWidget#русский
+  - DocumentLabel: Политика конфиденциальности
+    DocumentUrl: https://github.com/platwa/KanjiWidget/blob/main/PRIVACY.md
+ReleaseNotesUrl: https://github.com/platwa/KanjiWidget/releases/tag/v1.3.0
+ManifestType: locale
+ManifestVersion: 1.12.0
