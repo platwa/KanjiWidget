@@ -53,14 +53,32 @@ describe('widget pool updates', () => {
   })
 
   it('refreshes edited card content without changing pool membership', async () => {
-    const edited = { ...card, meaning_ru: 'солнечный день' }
+    const edited = { ...card, meaning_en: 'sunny day' }
     storageMocks.loadSettings.mockResolvedValue(DEFAULT_SETTINGS)
     storageMocks.buildDailyPool.mockResolvedValueOnce([card]).mockResolvedValue([edited])
     storageMocks.buildQuizPool.mockResolvedValue([edited])
 
     const view = render(<WidgetView />)
-    await waitFor(() => expect(view.getByText('день')).toBeInTheDocument())
+    await waitFor(() => expect(view.getByText('day')).toBeInTheDocument())
     act(() => window.dispatchEvent(new CustomEvent('kanjiwidget:pool-changed')))
-    await waitFor(() => expect(view.getByText('солнечный день')).toBeInTheDocument())
+    await waitFor(() => expect(view.getByText('sunny day')).toBeInTheDocument())
+  })
+
+  it('opens settings from the widget controls', async () => {
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
+    storageMocks.loadSettings.mockResolvedValue(DEFAULT_SETTINGS)
+    storageMocks.buildDailyPool.mockResolvedValue([card])
+    storageMocks.buildQuizPool.mockResolvedValue([card])
+
+    const view = render(<WidgetView />)
+    await waitFor(() => expect(storageMocks.buildDailyPool).toHaveBeenCalledTimes(1))
+    view.getByRole('button', { name: 'Open settings' }).click()
+
+    expect(openSpy).toHaveBeenCalledWith(
+      `${window.location.origin}/?view=settings`,
+      'kanjiwidget-settings',
+      'width=960,height=700',
+    )
+    openSpy.mockRestore()
   })
 })

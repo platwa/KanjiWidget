@@ -1,5 +1,5 @@
 import { createEmptyCard, fsrs, generatorParameters, type Card as FsrsCard, type Grade } from 'ts-fsrs'
-import type { PersistedCardState } from '../domain/types'
+import type { AppSettings, PersistedCardState } from '../domain/types'
 
 export function createNewState(cardId: string, now = new Date()): PersistedCardState {
   return fromFsrsCard(cardId, createEmptyCard(now))
@@ -56,14 +56,14 @@ export function previewIntervals(state: PersistedCardState, retention: number, n
   }, {})
 }
 
-export function formatDueInterval(isoDate: string, now = new Date()) {
+export function formatDueInterval(isoDate: string, now = new Date(), language: AppSettings['language'] = 'ru') {
   const minutes = Math.max(1, Math.round((new Date(isoDate).getTime() - now.getTime()) / 60_000))
-  if (minutes < 60) return `${minutes} мин`
+  if (minutes < 60) return language === 'ru' ? `${minutes} мин` : `${minutes} min`
   const hours = Math.round(minutes / 60)
-  if (hours < 24) return `${hours} ч`
+  if (hours < 24) return language === 'ru' ? `${hours} ч` : `${hours} hr`
   const days = Math.round(hours / 24)
-  if (days < 30) return `${days} дн`
+  if (days < 30) return language === 'ru' ? `${days} дн` : `${days} d`
   const months = Math.round(days / 30)
-  if (months < 12) return `${months} мес`
-  return `${Math.round(months / 12)} г`
+  if (months < 12) return language === 'ru' ? `${months} мес` : `${months} mo`
+  return language === 'ru' ? `${Math.round(months / 12)} г` : `${Math.round(months / 12)} yr`
 }

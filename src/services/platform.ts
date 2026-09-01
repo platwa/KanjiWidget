@@ -64,6 +64,12 @@ export async function exitApplication() {
   await invoke('quit_app')
 }
 
+export async function setNativeLanguage(language: AppSettings['language']) {
+  if (!isTauri()) return
+  const { invoke } = await import('@tauri-apps/api/core')
+  await invoke('set_native_language', { language })
+}
+
 export async function minimizeCurrentWindow() {
   if (!isTauri()) return
   const { getCurrentWindow } = await import('@tauri-apps/api/window')
@@ -155,14 +161,14 @@ export function endWidgetDrag() {
   widgetDragState = null
 }
 
-export async function pickAnkiPackage() {
+export async function pickAnkiPackage(language: AppSettings['language'] = 'en') {
   if (!isTauri()) return null
   const { open } = await import('@tauri-apps/plugin-dialog')
   const selection = await open({
     multiple: false,
     directory: false,
-    title: 'Импорт колоды Anki',
-    filters: [{ name: 'Колода Anki', extensions: ['apkg'] }],
+    title: language === 'ru' ? 'Импорт колоды Anki' : 'Import Anki deck',
+    filters: [{ name: language === 'ru' ? 'Колода Anki' : 'Anki deck', extensions: ['apkg'] }],
   })
   return typeof selection === 'string' ? selection : null
 }
@@ -185,10 +191,14 @@ export async function setAutostart(enabled: boolean) {
   if (!enabled && current) await autostart.disable()
 }
 
-export async function pickLockscreenFolder() {
+export async function pickLockscreenFolder(language: AppSettings['language'] = 'en') {
   if (!isTauri()) return null
   const { open } = await import('@tauri-apps/plugin-dialog')
-  const selection = await open({ directory: true, multiple: false, title: 'Папка изображений экрана блокировки' })
+  const selection = await open({
+    directory: true,
+    multiple: false,
+    title: language === 'ru' ? 'Папка изображений экрана блокировки' : 'Lock screen slideshow folder',
+  })
   return typeof selection === 'string' ? selection : null
 }
 

@@ -23,6 +23,7 @@
     "autostart:allow-enable",
     "autostart:allow-disable",
     "autostart:allow-is-enabled",
-    "opener:allow-open-url"
+    "opener:allow-open-url",
+    "opener:allow-default-urls"
   ]
 }

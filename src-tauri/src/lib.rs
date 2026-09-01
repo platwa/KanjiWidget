@@ -10,6 +10,67 @@ use tauri_plugin_sql::{Migration, MigrationKind};
 
 mod anki;
 
+const TRAY_ID: &str = "kanjiwidget-tray";
+
+fn build_tray_menu<R: tauri::Runtime, M: Manager<R>>(
+    manager: &M,
+    language: &str,
+) -> tauri::Result<Menu<R>> {
+    let russian = language == "ru";
+    let show = MenuItem::with_id(
+        manager,
+        "show",
+        if russian {
+            "Показать / скрыть виджет"
+        } else {
+            "Show / hide widget"
+        },
+        true,
+        None::<&str>,
+    )?;
+    let next = MenuItem::with_id(
+        manager,
+        "next",
+        if russian {
+            "Следующая карточка"
+        } else {
+            "Next card"
+        },
+        true,
+        None::<&str>,
+    )?;
+    let quiz = MenuItem::with_id(
+        manager,
+        "quiz",
+        if russian {
+            "Начать повторение"
+        } else {
+            "Start review"
+        },
+        true,
+        None::<&str>,
+    )?;
+    let settings = MenuItem::with_id(
+        manager,
+        "settings",
+        if russian {
+            "Настройки"
+        } else {
+            "Settings"
+        },
+        true,
+        None::<&str>,
+    )?;
+    let quit = MenuItem::with_id(
+        manager,
+        "quit",
+        if russian { "Выход" } else { "Exit" },
+        true,
+        None::<&str>,
+    )?;
+    Menu::with_items(manager, &[&show, &next, &quiz, &settings, &quit])
+}
+
 fn toggle_widget(app: &AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
         if window.is_visible().unwrap_or(false) {
@@ -23,7 +84,7 @@ fn toggle_widget(app: &AppHandle) {
 
 fn show_secondary_window(app: &AppHandle, label: &str) -> Result<(), String> {
     if !matches!(label, "quiz" | "settings") {
-        return Err("Неизвестное окно приложения".into());
+        return Err("Unknown application window".into());
     }
     if let Some(window) = app.get_webview_window(label) {
         window.show().map_err(|error| error.to_string())?;
@@ -38,9 +99,9 @@ fn show_secondary_window(app: &AppHandle, label: &str) -> Result<(), String> {
     }
 
     let (title, width, height) = if label == "quiz" {
-        ("KanjiWidget - Тест", 940.0, 720.0)
+        ("KanjiWidget - Review", 940.0, 720.0)
     } else {
-        ("KanjiWidget - Настройки", 1040.0, 760.0)
+        ("KanjiWidget - Settings", 1040.0, 760.0)
     };
 
     let url = PathBuf::from(format!("index.html?view={label}"));
@@ -70,6 +131,37 @@ async fn show_app_window(app: AppHandle, view: String) -> Result<(), String> {
     show_secondary_window(&app, &view)
 }
 
+#[tauri::command]
+fn set_native_language(app: AppHandle, language: String) -> Result<(), String> {
+    if !matches!(language.as_str(), "en" | "ru") {
+        return Err("Unsupported interface language".into());
+    }
+
+    let menu = build_tray_menu(&app, &language).map_err(|error| error.to_string())?;
+    let tray = app
+        .tray_by_id(TRAY_ID)
+        .ok_or_else(|| "Application tray icon is unavailable".to_string())?;
+    tray.set_menu(Some(menu))
+        .map_err(|error| error.to_string())?;
+
+    let russian = language == "ru";
+    if let Some(window) = app.get_webview_window("quiz") {
+        let _ = window.set_title(if russian {
+            "KanjiWidget — Повторение"
+        } else {
+            "KanjiWidget — Review"
+        });
+    }
+    if let Some(window) = app.get_webview_window("settings") {
+        let _ = window.set_title(if russian {
+            "KanjiWidget — Настройки"
+        } else {
+            "KanjiWidget — Settings"
+        });
+    }
+    Ok(())
+}
+
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct CardEditorRequest {
@@ -79,7 +171,7 @@ struct CardEditorRequest {
 
 fn validate_editor_id(value: &str) -> Result<(), String> {
     if value.is_empty() || value.len() > 512 {
-        return Err("Недопустимый идентификатор карточки".into());
+        return Err("Invalid card identifier".into());
     }
     Ok(())
 }
@@ -107,7 +199,7 @@ async fn show_card_editor(app: AppHandle, deck_id: String, card_id: String) -> R
         "index.html?view=settings&section=decks&deckId={deck_query}&cardId={card_query}"
     ));
     WebviewWindowBuilder::new(&app, "settings", WebviewUrl::App(url))
-        .title("KanjiWidget - Настройки")
+        .title("KanjiWidget - Settings")
         .inner_size(1040.0, 760.0)
         .min_inner_size(760.0, 600.0)
         .center()
@@ -125,18 +217,18 @@ fn write_lockscreen_png(
     bytes: Vec<u8>,
 ) -> Result<String, String> {
     if bytes.len() > 20 * 1024 * 1024 {
-        return Err("Изображение слишком велико".into());
+        return Err("The image is too large".into());
     }
     if !file_name.ends_with(".png")
         || file_name.contains('/')
         || file_name.contains('\\')
         || file_name.contains("..")
     {
-        return Err("Недопустимое имя файла".into());
+        return Err("Invalid file name".into());
     }
     let directory = Path::new(&folder);
     if !directory.is_absolute() {
-        return Err("Путь должен быть абсолютным".into());
+        return Err("The path must be absolute".into());
     }
     fs::create_dir_all(directory).map_err(|error| error.to_string())?;
     let output = directory.join(file_name);
@@ -244,6 +336,7 @@ pub fn run() {
             write_lockscreen_png,
             quit_app,
             show_app_window,
+            set_native_language,
             show_card_editor,
             anki::inspect_anki_package,
             anki::import_anki_cards
@@ -258,15 +351,9 @@ pub fn run() {
                     window.set_size(LogicalSize::new(size.width.max(280.0), 300.0))?;
                 }
             }
-            let show =
-                MenuItem::with_id(app, "show", "Показать / скрыть виджет", true, None::<&str>)?;
-            let next = MenuItem::with_id(app, "next", "Следующая карточка", true, None::<&str>)?;
-            let quiz = MenuItem::with_id(app, "quiz", "Открыть тест", true, None::<&str>)?;
-            let settings = MenuItem::with_id(app, "settings", "Настройки", true, None::<&str>)?;
-            let quit = MenuItem::with_id(app, "quit", "Выход", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&show, &next, &quiz, &settings, &quit])?;
+            let menu = build_tray_menu(app, "en")?;
 
-            let mut tray = TrayIconBuilder::new()
+            let mut tray = TrayIconBuilder::with_id(TRAY_ID)
                 .menu(&menu)
                 .show_menu_on_left_click(false)
                 .tooltip("KanjiWidget")

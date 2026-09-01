@@ -4,7 +4,7 @@ export const DECKS: Deck[] = [
   {
     id: 'jlpt-n5',
     name: 'JLPT N5',
-    description: '80 базовых кандзи для начала обучения',
+    description: '80 essential kanji for beginners',
     level: 'N5',
     cardCount: 80,
     source: 'builtin',
@@ -12,7 +12,7 @@ export const DECKS: Deck[] = [
   {
     id: 'jlpt-n4',
     name: 'JLPT N4',
-    description: '170 кандзи следующего уровня',
+    description: '170 kanji for the next level',
     level: 'N4',
     cardCount: 170,
     source: 'builtin',
@@ -27,7 +27,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   showOnyomi: true,
   showKunyomi: true,
   showFurigana: true,
-  language: 'ru',
+  language: 'en',
   theme: 'dark',
   opacity: 0.92,
   alwaysOnTop: true,
@@ -40,10 +40,3 @@ export const DEFAULT_SETTINGS: AppSettings = {
   requestRetention: 0.9,
   hotkey: 'Ctrl+Shift+J',
 }
-
-export const RATING_LABELS = {
-  1: 'Снова',
-  2: 'Сложно',
-  3: 'Нормально',
-  4: 'Легко',
-} as const

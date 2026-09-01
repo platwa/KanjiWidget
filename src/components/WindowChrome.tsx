@@ -1,4 +1,6 @@
 import { Minus, X } from 'lucide-react'
+import type { Language } from '../i18n'
+import { tx } from '../i18n'
 import { closeCurrentWindow, minimizeCurrentWindow } from '../services/platform'
 
 interface WindowChromeProps {
@@ -6,9 +8,10 @@ interface WindowChromeProps {
   title: string
   trailing?: React.ReactNode
   onClose?: () => void
+  language?: Language
 }
 
-export function WindowChrome({ eyebrow, title, trailing, onClose }: WindowChromeProps) {
+export function WindowChrome({ eyebrow, title, trailing, onClose, language = 'en' }: WindowChromeProps) {
   return (
     <header className="window-chrome" data-tauri-drag-region>
       <div className="window-brand" data-tauri-drag-region>
@@ -20,10 +23,10 @@ export function WindowChrome({ eyebrow, title, trailing, onClose }: WindowChrome
       </div>
       <div className="window-actions">
         {trailing}
-        <button className="chrome-button" type="button" aria-label="Свернуть" onClick={minimizeCurrentWindow}>
+        <button className="chrome-button" type="button" aria-label={tx(language, 'Minimize', 'Свернуть')} onClick={minimizeCurrentWindow}>
           <Minus size={17} />
         </button>
-        <button className="chrome-button chrome-close" type="button" aria-label="Закрыть" onClick={onClose ?? closeCurrentWindow}>
+        <button className="chrome-button chrome-close" type="button" aria-label={tx(language, 'Close', 'Закрыть')} onClick={onClose ?? closeCurrentWindow}>
           <X size={17} />
         </button>
       </div>

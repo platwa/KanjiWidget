@@ -1,48 +1,50 @@
 # KanjiWidget
 
-KanjiWidget — офлайн-приложение для Windows 10/11, которое показывает компактные карточки с японскими кандзи прямо на рабочем столе и планирует повторения с помощью FSRS.
+KanjiWidget is a free, offline Windows 10/11 app that keeps compact Japanese study cards on your desktop and schedules reviews with FSRS. The interface is available in English and Russian.
 
-## Возможности
+## Features
 
-- прозрачный виджет поверх рабочего стола с автоматической и ручной сменой карточек;
-- режимы полной карточки и загадки;
-- встроенные колоды JLPT N5 (80 кандзи) и JLPT N4 (170 кандзи);
-- естественный пример для каждой карточки с фуриганой над всеми кандзи;
-- повторение в стиле Anki: кандзи и пример → показ ответа → оценки «Снова / Сложно / Нормально / Легко»;
-- прямой импорт `.apkg`: нужные поля попадают в отдельную колоду, изображения и другие медиа не копируются;
-- добавление собственных карточек по одной с немедленным попаданием в текущий пул;
-- быстрый поиск, просмотр, редактирование, скрытие и восстановление карточек даже в больших колодах;
-- удаление импортированных и пользовательских колод целиком;
-- локальная SQLite-база с прогрессом, настройками и журналом повторений;
-- системный трей, автозапуск и глобальная клавиша `Ctrl+Shift+J`;
-- тёмная, светлая и системная темы;
-- экспорт карточек 1920×1080 для слайдшоу экрана блокировки Windows;
-- никаких аккаунтов, телеметрии и сетевых запросов во время работы.
+- transparent desktop widget with automatic and manual card rotation;
+- full-card and prompt display modes;
+- built-in JLPT N5 (80 kanji) and JLPT N4 (170 kanji) decks;
+- usage examples with furigana above kanji;
+- Anki-style reviews: prompt and example → reveal answer → Again / Hard / Good / Easy;
+- direct `.apkg` import into a separate deck without copying images or other media;
+- manual card creation with immediate insertion into the current pool;
+- fast search, editing, hiding, restoring, and deletion for large decks;
+- local SQLite database for settings, progress, and review history;
+- system tray, optional autostart, and the `Ctrl+Shift+J` global shortcut;
+- dark, light, and system themes;
+- 1920×1080 card export for the Windows lock-screen slideshow;
+- no account, advertising, telemetry, or network access during normal use.
 
-## Управление виджетом
+## Widget controls
 
-- щелчок — следующая карточка или раскрытие ответа в режиме загадки;
-- `Ctrl` + щелчок — предыдущая карточка;
-- колёсико мыши — переход между карточками;
-- наведение — пауза автоматической ротации;
-- карандаш рядом с паузой — редактирование текущей карточки без поиска по колоде;
-- правый щелчок — тест, настройки и выход;
-- перетаскивание за верхнюю область — перемещение;
-- нижний правый угол — изменение размера.
+- Click: next card, or reveal the answer in prompt mode.
+- `Ctrl` + click: previous card.
+- Mouse wheel: move between cards.
+- Hover: pause automatic rotation.
+- Pencil next to pause: edit the current card.
+- Settings control next to the pencil: open the full settings window.
+- Right click: open Review, Settings, or exit.
+- Drag the top area: move the widget.
+- Drag the lower-right corner: resize it.
 
-## Готовые сборки
+## Windows builds
 
-В папке `output` находятся три варианта версии 1.2.0 для Windows x64:
+Download published packages from [GitHub Releases](https://github.com/platwa/KanjiWidget/releases). The recommended option for most users is the per-user Setup executable.
 
-- `KanjiWidget-1.2.0-x64-Setup.exe` — рекомендуемый установщик для текущего пользователя;
-- `KanjiWidget-1.2.0-x64.msi` — MSI-пакет для корпоративного развёртывания;
-- `KanjiWidget-1.2.0-x64-Portable.exe` — переносимая версия без установки.
+The `output` directory contains three Windows x64 packages for version 1.3.0:
 
-Файл `SHA256SUMS-1.2.0.txt` содержит контрольные суммы готовых пакетов. Перед публичным распространением рекомендуется подписать установщики собственным сертификатом Authenticode.
+- `KanjiWidget-1.3.0-x64-Setup.exe` — recommended per-user installer;
+- `KanjiWidget-1.3.0-x64.msi` — MSI package for managed deployment;
+- `KanjiWidget-1.3.0-x64-Portable.exe` — portable build that requires no installation.
 
-## Разработка
+`SHA256SUMS-1.3.0.txt` contains SHA-256 checksums. Public releases are currently unsigned, so Windows SmartScreen and some heuristic scanners may warn about an unfamiliar publisher. The checksums and reproducible source build make the packages verifiable; an Authenticode certificate is recommended before wider distribution.
 
-Требования: Node.js 20+, pnpm, Rust stable и Microsoft C++ Build Tools.
+## Development
+
+Requirements: Node.js 20+, pnpm, stable Rust, and Microsoft C++ Build Tools.
 
 ```powershell
 pnpm install
@@ -52,11 +54,11 @@ pnpm tauri dev
 pnpm tauri build
 ```
 
-Промежуточные установщики создаются в `src-tauri/target/release/bundle/`, а финальные пакеты для передачи пользователю собраны в `output/`.
+Tauri produces intermediate packages in `src-tauri/target/release/bundle/`. Release-ready local artifacts are copied to `output/`.
 
-## Обновление данных
+## Updating the built-in data
 
-Сборочный скрипт ожидает исходные файлы `jlpt-kanji-dictionary` и `kanjidic2.xml.gz` в папке `tmp`, после чего создаёт компактный набор карточек:
+The data scripts expect `jlpt-kanji-dictionary` and `kanjidic2.xml.gz` in `tmp` and produce the compact offline dataset:
 
 ```powershell
 python scripts/enrich_examples.py
@@ -64,10 +66,24 @@ python scripts/build_cards.py
 python scripts/build_fonts.py
 ```
 
-Скомпилированный `cards.generated.json` и сокращённые WOFF2-шрифты входят в репозиторий приложения, поэтому пользователю ничего скачивать не требуется.
+The generated JSON and subset WOFF2 fonts are included in the application, so users do not need to download study data.
 
-## Данные и лицензии
+## Support and bug reports
 
-Исходный код KanjiWidget распространяется по лицензии [Apache License 2.0](LICENSE).
+Report reproducible problems through [GitHub Issues](https://github.com/platwa/KanjiWidget/issues) or email [support.kanjiwidget@gmail.com](mailto:support.kanjiwidget@gmail.com). Please do not attach private Anki data.
 
-Подробные сведения о сторонних материалах приведены в [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Словарная часть набора карточек является производной JMdict/KANJIDIC2 и распространяется отдельно на условиях CC BY-SA 4.0.
+KanjiWidget is free and open source. You can help fund continued development through the [official Tribute page](https://web.tribute.tg/d/PHT).
+
+## License
+
+KanjiWidget source code is licensed under the [Apache License 2.0](LICENSE). Third-party notices are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Dictionary content derived from JMdict/KANJIDIC2 is distributed separately under CC BY-SA 4.0.
+
+---
+
+## Русский
+
+KanjiWidget — бесплатное офлайн-приложение для Windows 10/11: оно показывает компактные карточки с японскими кандзи на рабочем столе и планирует повторения по алгоритму FSRS. Язык интерфейса переключается в разделе **Settings → Interface**.
+
+Поддерживаются встроенные колоды JLPT N5/N4, импорт `.apkg` без изображений, собственные карточки, быстрый поиск и редактирование, повторение в стиле Anki, фуригана в примерах, экспорт для экрана блокировки и работа из системного трея. Аккаунт, реклама и телеметрия отсутствуют.
+
+Сообщить об ошибке можно через [GitHub Issues](https://github.com/platwa/KanjiWidget/issues) или по адресу [support.kanjiwidget@gmail.com](mailto:support.kanjiwidget@gmail.com). Поддержать разработку можно на [официальной странице Tribute](https://web.tribute.tg/d/PHT). Исходный код распространяется по Apache License 2.0, а сведения о лицензиях данных находятся в [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

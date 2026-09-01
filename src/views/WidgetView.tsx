@@ -3,6 +3,7 @@ import { BookOpenCheck, ChevronLeft, ChevronRight, Grip, LogOut, Pause, Pencil, 
 import { KanjiCard } from '../components/KanjiCard'
 import { DEFAULT_SETTINGS } from '../domain/defaults'
 import type { AppSettings, Card } from '../domain/types'
+import { applyDocumentLanguage, tx } from '../i18n'
 import {
   applyWidgetWindowSettings,
   beginWidgetDrag,
@@ -13,6 +14,7 @@ import {
   moveWidgetDrag,
   openAppWindow,
   openCardEditor,
+  setNativeLanguage,
   startWidgetResize,
 } from '../services/platform'
 import { buildDailyPool, buildQuizPool, loadSettings } from '../services/storage'
@@ -36,6 +38,10 @@ export function WidgetView() {
   const [loading, setLoading] = useState(true)
   const wheelLocked = useRef(false)
   const quizActive = useRef(false)
+  const language = settings.language
+  const tr = (english: string, russian: string) => tx(language, english, russian)
+
+  useEffect(() => { applyDocumentLanguage(language) }, [language])
 
   const refresh = useCallback(async () => {
     const nextSettings = await loadSettings()
@@ -51,7 +57,10 @@ export function WidgetView() {
     })
     setIndex((current) => pool.length ? Math.min(current, pool.length - 1) : 0)
     setLoading(false)
-    await applyWidgetWindowSettings(nextSettings)
+    await Promise.all([
+      applyWidgetWindowSettings(nextSettings),
+      setNativeLanguage(nextSettings.language),
+    ])
   }, [])
 
   useEffect(() => {
@@ -156,7 +165,7 @@ export function WidgetView() {
     >
       <div
         className="widget-drag-region"
-        aria-label="Переместить виджет"
+        aria-label={tr('Move widget', 'Переместить виджет')}
         onPointerDown={(event) => {
           if (event.button !== 0) return
           event.preventDefault()
@@ -174,7 +183,7 @@ export function WidgetView() {
       >
         <Grip size={14} aria-hidden="true" />
       </div>
-      <button className="widget-main" type="button" onClick={handleCardClick} aria-label="Следующая карточка">
+      <button className="widget-main" type="button" onClick={handleCardClick} aria-label={tr('Next card', 'Следующая карточка')}>
         {loading ? (
           <div className="widget-loading"><span /><span /><span /></div>
         ) : currentCard ? (
@@ -182,28 +191,29 @@ export function WidgetView() {
             <KanjiCard card={currentCard} settings={settings} concealed={conceal} />
           </div>
         ) : (
-          <div className="widget-empty">Колода пуста</div>
+          <div className="widget-empty">{tr('The deck is empty', 'Колода пуста')}</div>
         )}
       </button>
 
       <div className="widget-hud">
-        <button type="button" onClick={previous} aria-label="Предыдущая"><ChevronLeft size={16} /></button>
+        <button type="button" onClick={previous} aria-label={tr('Previous card', 'Предыдущая')}><ChevronLeft size={16} /></button>
         <span className="pool-position">{cards.length ? index + 1 : 0}<i>/</i>{cards.length}</span>
         <span className="pause-indicator">{paused ? <Pause size={11} /> : <Play size={11} />}</span>
-        <button type="button" aria-label="Редактировать текущую карточку" title="Редактировать карточку" disabled={!currentCard} onClick={() => { if (currentCard) void openCardEditor(settings.deckId, currentCard.id) }}><Pencil size={13} /></button>
-        <button type="button" onClick={next} aria-label="Следующая"><ChevronRight size={16} /></button>
+        <button type="button" aria-label={tr('Edit current card', 'Редактировать текущую карточку')} title={tr('Edit card', 'Редактировать карточку')} disabled={!currentCard} onClick={() => { if (currentCard) void openCardEditor(settings.deckId, currentCard.id) }}><Pencil size={13} /></button>
+        <button type="button" aria-label={tr('Open settings', 'Открыть настройки')} title={tr('Settings', 'Настройки')} onClick={() => openAppWindow('settings')}><Settings2 size={13} /></button>
+        <button type="button" onClick={next} aria-label={tr('Next card', 'Следующая')}><ChevronRight size={16} /></button>
       </div>
 
       {contextOpen && (
         <div className="widget-context-menu" role="menu">
-          <button type="button" onClick={next}><ChevronRight size={15} />Следующая</button>
-          <button type="button" onClick={() => openAppWindow('quiz')}><BookOpenCheck size={15} />Открыть тест</button>
-          <button type="button" disabled={!currentCard} onClick={() => { if (currentCard) void openCardEditor(settings.deckId, currentCard.id) }}><Pencil size={15} />Редактировать карточку</button>
-          <button type="button" onClick={() => openAppWindow('settings')}><Settings2 size={15} />Настройки</button>
-          <button type="button" onClick={exitApplication}><LogOut size={15} />Выход</button>
+          <button type="button" onClick={next}><ChevronRight size={15} />{tr('Next card', 'Следующая')}</button>
+          <button type="button" onClick={() => openAppWindow('quiz')}><BookOpenCheck size={15} />{tr('Start review', 'Открыть тест')}</button>
+          <button type="button" disabled={!currentCard} onClick={() => { if (currentCard) void openCardEditor(settings.deckId, currentCard.id) }}><Pencil size={15} />{tr('Edit card', 'Редактировать карточку')}</button>
+          <button type="button" onClick={() => openAppWindow('settings')}><Settings2 size={15} />{tr('Settings', 'Настройки')}</button>
+          <button type="button" onClick={exitApplication}><LogOut size={15} />{tr('Exit', 'Выход')}</button>
         </div>
       )}
-      <button className="resize-handle" type="button" aria-label="Изменить размер" onMouseDown={startWidgetResize} />
+      <button className="resize-handle" type="button" aria-label={tr('Resize widget', 'Изменить размер')} onMouseDown={startWidgetResize} />
     </main>
   )
 }
