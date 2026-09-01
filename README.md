@@ -1,6 +1,18 @@
 # KanjiWidget
 
-KanjiWidget is a free, offline Windows 10/11 app that keeps compact Japanese study cards on your desktop and schedules reviews with FSRS. The interface is available in English and Russian.
+<p align="center">
+  <img src="docs/images/hero-en.png" alt="KanjiWidget — learn kanji in the background" width="100%">
+</p>
+
+<p align="center">
+  <a href="https://github.com/platwa/KanjiWidget/releases/download/v1.3.0/KanjiWidget-1.3.0-x64-Setup.exe"><strong>Download for Windows</strong></a>
+  · <a href="https://github.com/platwa/KanjiWidget/releases/tag/v1.3.0">Release notes</a>
+  · <a href="#русский">Русский</a>
+</p>
+
+KanjiWidget is a free, open-source Windows 10/11 app that keeps Japanese study cards quietly visible on your desktop and schedules reviews with FSRS. It works offline, requires no account, and is available in English and Russian.
+
+> **Best for:** Japanese learners who want gentle background exposure to kanji without keeping Anki or a browser tab open all day.
 
 ## Features
 
@@ -17,6 +29,14 @@ KanjiWidget is a free, offline Windows 10/11 app that keeps compact Japanese stu
 - dark, light, and system themes;
 - 1920×1080 card export for the Windows lock-screen slideshow;
 - no account, advertising, telemetry, or network access during normal use.
+
+## See it in action
+
+| Review with FSRS | Settings and themes |
+| --- | --- |
+| ![Anki-style review in KanjiWidget](docs/images/review-answer-en.png) | ![KanjiWidget settings](docs/images/settings-en.png) |
+
+The widget stays compact on the desktop, while Review and Settings open as focused full-size windows. Cards and progress remain on the computer in a local SQLite database.
 
 ## Widget controls
 
@@ -41,6 +61,16 @@ The `output` directory contains three Windows x64 packages for version 1.3.0:
 - `KanjiWidget-1.3.0-x64-Portable.exe` — portable build that requires no installation.
 
 `SHA256SUMS-1.3.0.txt` contains SHA-256 checksums. Public releases are currently unsigned, so Windows SmartScreen and some heuristic scanners may warn about an unfamiliar publisher. The checksums and reproducible source build make the packages verifiable; an Authenticode certificate is recommended before wider distribution.
+
+## Privacy and trust
+
+- normal study activity is fully offline;
+- the app has no account system, ads, analytics, or telemetry;
+- support, donation, and issue links open only when the user selects them;
+- imported Anki data and review history remain in the local application database;
+- release checksums are published alongside every Windows package.
+
+See the full [privacy statement](PRIVACY.md), [security policy](SECURITY.md), and [code signing policy](CODE_SIGNING.md).
 
 ## Development
 
@@ -82,7 +112,16 @@ KanjiWidget source code is licensed under the [Apache License 2.0](LICENSE). Thi
 
 ## Русский
 
-KanjiWidget — бесплатное офлайн-приложение для Windows 10/11: оно показывает компактные карточки с японскими кандзи на рабочем столе и планирует повторения по алгоритму FSRS. Язык интерфейса переключается в разделе **Settings → Interface**.
+<p align="center">
+  <img src="docs/images/hero-ru.png" alt="KanjiWidget — кандзи всегда перед глазами" width="100%">
+</p>
+
+<p align="center">
+  <a href="https://github.com/platwa/KanjiWidget/releases/download/v1.3.0/KanjiWidget-1.3.0-x64-Setup.exe"><strong>Скачать для Windows</strong></a>
+  · <a href="https://github.com/platwa/KanjiWidget/releases/tag/v1.3.0">Описание релиза</a>
+</p>
+
+KanjiWidget — бесплатное приложение с открытым исходным кодом для Windows 10/11: оно показывает компактные карточки с японскими кандзи на рабочем столе и планирует повторения по алгоритму FSRS. Программа работает офлайн, не требует аккаунта, а язык переключается в разделе **Настройки → Интерфейс**.
 
 Поддерживаются встроенные колоды JLPT N5/N4, импорт `.apkg` без изображений, собственные карточки, быстрый поиск и редактирование, повторение в стиле Anki, фуригана в примерах, экспорт для экрана блокировки и работа из системного трея. Аккаунт, реклама и телеметрия отсутствуют.
 
