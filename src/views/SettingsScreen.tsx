@@ -150,7 +150,8 @@ export function SettingsScreen() {
 
           {section === 'widget' && <SettingsSection eyebrow={tr('Widget', 'Виджет')} title={tr('A card on your desktop', 'Карточка на рабочем столе')} description={tr('Choose what the widget shows and how it behaves above other windows.', 'Определите, что показывать и как виджет ведёт себя поверх окон.')}>
             <div className="settings-card">
-              <Segmented<DisplayMode> value={settings.displayMode} label={tr('Display mode', 'Режим показа')} onChange={(value) => update('displayMode', value)} options={[{ value: 'full', label: tr('Full card', 'Вся карточка') }, { value: 'quiz', label: tr('Prompt', 'Загадка') }]} />
+              <Segmented<DisplayMode> value={settings.displayMode} label={tr('Display mode', 'Режим показа')} onChange={(value) => update('displayMode', value)} options={[{ value: 'full', label: tr('Full card', 'Вся карточка') }, { value: 'active-recall', label: tr('Active recall', 'Активное вспоминание') }, { value: 'quiz', label: tr('Prompt', 'Загадка') }]} />
+              {settings.displayMode === 'active-recall' && <p className="segmented-help">{tr('Kanji and the Japanese example stay visible. Hover over or click the card to reveal the answer.', 'Кандзи и японский пример остаются видимыми. Наведите курсор или нажмите на карточку, чтобы открыть ответ.')}</p>}
               <div className="settings-divider" />
               <Switch checked={settings.showFurigana} onChange={(value) => update('showFurigana', value)} label={tr('Furigana', 'Фуригана')} description={tr('Readings above kanji', 'Чтения над кандзи')} />
               <Switch checked={settings.showOnyomi} onChange={(value) => update('showOnyomi', value)} label={tr('Onyomi', 'Онъёми')} description={tr('Sino-Japanese readings', 'Китайские чтения')} />

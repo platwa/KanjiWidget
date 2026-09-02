@@ -95,7 +95,7 @@ body[data-view='widget'] { background: transparent; }
 .widget-shell:hover .widget-drag-region { opacity: 1; }
 .widget-main { width: 100%; height: 100%; border: 0; padding: 21px 18px 42px; background: transparent; cursor: pointer; }
 .kanji-card-content { height: 100%; display: grid; grid-template-rows: 18px minmax(72px, 1fr) auto auto auto; row-gap: 4px; align-items: center; justify-items: center; min-width: 0; }
-.furigana { color: #9c99b4; font-size: clamp(11px, 4.8vh, 17px); line-height: 1; letter-spacing: .08em; transition: opacity .18s; }
+.furigana { color: #9c99b4; font-size: clamp(11px, 4.8vh, 17px); line-height: 1; letter-spacing: .08em; transition: opacity .18s, transform .18s; }
 .kanji-glyph { align-self: stretch; display: grid; place-items: center; padding: 1px 0 9px; font-family: 'Noto Serif JP', 'Yu Mincho', serif; font-size: clamp(66px, 38vh, 118px); font-weight: 600; line-height: .88; color: #f6f1e8; text-shadow: 0 2px 20px rgba(0,0,0,.12); }
 .font-sm .kanji-glyph { font-size: clamp(48px, 28vh, 88px); }.font-lg .kanji-glyph { font-size: clamp(82px, 45vh, 136px); transform: translateY(-9px); }
 @media (max-height: 350px) {
@@ -120,9 +120,10 @@ body[data-view='widget'] { background: transparent; }
 .theme-light .usage-example { border-top-color: rgba(35,30,25,.09); }
 .usage-sentence { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #eeeaf0; font-size: clamp(10px, 3.45vh, 12px); line-height: 1.65; }
 .theme-light .usage-sentence { color: #343139; }.ruby-text ruby { ruby-position: over; }.ruby-text rt { color: #aaa5b8; font-size: .82em; font-weight: 650; line-height: 1; letter-spacing: 0; }.ruby-text .target-kanji { color: #a9bafd; }.theme-light .ruby-text .target-kanji { color: #4e69c4; }
-.usage-translation { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #8f8b98; font-size: clamp(8px, 2.8vh, 10px); line-height: 1.25; }
-.concealed .furigana, .concealed .reading-stack, .concealed .meaning, .concealed .usage-example { opacity: 0; transform: translateY(4px); }
-.concealed .kanji-glyph { transform: scale(1.05); }
+.usage-translation { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #8f8b98; font-size: clamp(8px, 2.8vh, 10px); line-height: 1.25; transition: opacity .18s, transform .18s; }
+.concealed-all .furigana, .concealed-all .reading-stack, .concealed-all .meaning, .concealed-all .usage-example,
+.concealed-answers .furigana, .concealed-answers .reading-stack, .concealed-answers .meaning, .concealed-answers .usage-translation { opacity: 0; transform: translateY(4px); }
+.concealed-all .kanji-glyph { transform: scale(1.05); }
 .card-transition { width: 100%; height: 100%; animation: card-in .2s ease both; }
 @keyframes card-in { from { opacity: 0; transform: translateY(3px) scale(.992); } to { opacity: 1; transform: none; } }
 .widget-hud { position: absolute; z-index: 5; left: 50%; bottom: 7px; transform: translate(-50%, 3px); display: flex; align-items: center; gap: 4px; padding: 3px; border: 1px solid rgba(255,255,255,.08); border-radius: 10px; background: rgba(5,7,11,.72); opacity: 0; transition: opacity .18s, transform .18s; }
@@ -153,6 +154,7 @@ body[data-view='widget'] { background: transparent; }
 .segmented { display: flex; padding: 3px; border-radius: 10px; background: var(--bg-soft); border: 1px solid var(--border); }
 .segmented button { flex: 1; min-height: 32px; border: 0; border-radius: 7px; background: transparent; color: var(--text-muted); font-size: 11px; }
 .segmented button.active { background: var(--bg-elevated); color: var(--text); box-shadow: 0 1px 6px rgba(0,0,0,.13); }
+.segmented-help { margin: 8px 2px 0; color: var(--text-muted); font-size: 9px; line-height: 1.5; }
 .setting-row { display: flex; align-items: center; justify-content: space-between; min-height: 56px; gap: 20px; border-bottom: 1px solid var(--border); cursor: pointer; }.setting-row:last-child { border-bottom: 0; }
 .setting-row > span:first-child { display: grid; gap: 3px; }.setting-row strong { font-size: 12px; font-weight: 600; }.setting-row small { font-size: 10px; color: var(--text-muted); }
 .switch-row input { position: absolute; opacity: 0; pointer-events: none; }.switch-track { width: 38px; height: 22px; padding: 2px; border-radius: 99px; background: var(--bg-hover); border: 1px solid var(--border-strong); transition: .18s; }.switch-track span { display: block; width: 16px; height: 16px; border-radius: 50%; background: var(--text-muted); transition: .18s; }

@@ -13,8 +13,8 @@ KanjiWidget is a desktop companion, not a claim to replace every Anki workflow. 
 ## Links
 
 - Repository: https://github.com/platwa/KanjiWidget
-- Release: https://github.com/platwa/KanjiWidget/releases/tag/v1.3.0
-- Recommended installer: https://github.com/platwa/KanjiWidget/releases/download/v1.3.0/KanjiWidget-1.3.0-x64-Setup.exe
+- Release: https://github.com/platwa/KanjiWidget/releases/tag/v1.4.0
+- Recommended installer: https://github.com/platwa/KanjiWidget/releases/download/v1.4.0/KanjiWidget-1.4.0-x64-Setup.exe
 - Issues: https://github.com/platwa/KanjiWidget/issues
 - Support: support.kanjiwidget@gmail.com
 - Tribute: https://web.tribute.tg/d/PHT
@@ -33,6 +33,7 @@ It is a small Windows 10/11 desktop widget with:
 
 - built-in JLPT N5 and N4 decks;
 - furigana and example sentences;
+- an active-recall widget mode that reveals readings and meanings on hover;
 - Anki-style FSRS reviews;
 - direct `.apkg` import without copying media;
 - editable custom cards and decks;

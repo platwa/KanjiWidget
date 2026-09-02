@@ -1,4 +1,4 @@
-import { act, cleanup, render, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { DEFAULT_SETTINGS } from '../domain/defaults'
 import type { Card } from '../domain/types'
@@ -24,7 +24,21 @@ const card: Card = {
   grade: 1,
   strokes: 4,
   tags: [],
-  examples: [],
+  examples: [{
+    word: '日曜日',
+    reading: 'にちようび',
+    meaning_ru: '',
+    meaning_en: '',
+    sentence: '今日は日曜日です。',
+    sentence_ru: 'Сегодня воскресенье.',
+    sentence_en: 'Today is Sunday.',
+    ruby: [
+      { text: '今日', reading: 'きょう' },
+      { text: 'は' },
+      { text: '日曜日', reading: 'にちようび' },
+      { text: 'です。' },
+    ],
+  }],
 }
 
 afterEach(() => {
@@ -80,5 +94,39 @@ describe('widget pool updates', () => {
       'width=960,height=700',
     )
     openSpy.mockRestore()
+  })
+
+  it('keeps the Japanese example visible and reveals answers after a deliberate hover', async () => {
+    storageMocks.loadSettings.mockResolvedValue({ ...DEFAULT_SETTINGS, displayMode: 'active-recall' })
+    storageMocks.buildDailyPool.mockResolvedValue([card])
+    storageMocks.buildQuizPool.mockResolvedValue([card])
+
+    const view = render(<WidgetView />)
+    const cardButton = await view.findByRole('button', { name: 'Reveal answer' })
+    const sentence = view.container.querySelector('.ruby-text')
+
+    expect(view.container.querySelector('.kanji-card-content')).toHaveClass('concealed-answers')
+    expect(sentence).toHaveAttribute('aria-label', '今日は日曜日です。')
+    expect(view.getByText('Today is Sunday.')).toHaveAttribute('aria-hidden', 'true')
+
+    fireEvent.mouseEnter(cardButton)
+    await waitFor(() => expect(view.container.querySelector('.kanji-card-content')).toHaveClass('concealed-none'), { timeout: 600 })
+    expect(view.getByText('Today is Sunday.')).toHaveAttribute('aria-hidden', 'false')
+
+    fireEvent.mouseLeave(cardButton)
+    await waitFor(() => expect(view.container.querySelector('.kanji-card-content')).toHaveClass('concealed-answers'), { timeout: 500 })
+  })
+
+  it('reveals the active-recall answer immediately when the card is activated', async () => {
+    storageMocks.loadSettings.mockResolvedValue({ ...DEFAULT_SETTINGS, displayMode: 'active-recall' })
+    storageMocks.buildDailyPool.mockResolvedValue([card])
+    storageMocks.buildQuizPool.mockResolvedValue([card])
+
+    const view = render(<WidgetView />)
+    const cardButton = await view.findByRole('button', { name: 'Reveal answer' })
+    fireEvent.click(cardButton)
+
+    expect(view.container.querySelector('.kanji-card-content')).toHaveClass('concealed-none')
+    expect(cardButton).toHaveAttribute('aria-label', 'Next card')
   })
 })

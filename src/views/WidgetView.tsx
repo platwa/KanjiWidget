@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { BookOpenCheck, ChevronLeft, ChevronRight, Grip, LogOut, Pause, Pencil, Play, Settings2 } from 'lucide-react'
 import { KanjiCard } from '../components/KanjiCard'
 import { DEFAULT_SETTINGS } from '../domain/defaults'
@@ -38,6 +38,8 @@ export function WidgetView() {
   const [loading, setLoading] = useState(true)
   const wheelLocked = useRef(false)
   const quizActive = useRef(false)
+  const revealTimer = useRef<number | null>(null)
+  const concealTimer = useRef<number | null>(null)
   const language = settings.language
   const tr = (english: string, russian: string) => tx(language, english, russian)
 
@@ -81,6 +83,12 @@ export function WidgetView() {
   }, [refresh])
 
   const currentCard = cards[index]
+  const clearRecallTimers = useCallback(() => {
+    if (revealTimer.current !== null) window.clearTimeout(revealTimer.current)
+    if (concealTimer.current !== null) window.clearTimeout(concealTimer.current)
+    revealTimer.current = null
+    concealTimer.current = null
+  }, [])
   const next = useCallback(() => {
     if (!cards.length) return
     setIndex((value) => {
@@ -111,6 +119,13 @@ export function WidgetView() {
     return () => { void cleanup.then((dispose) => dispose()) }
   }, [next])
 
+  useLayoutEffect(() => {
+    clearRecallTimers()
+    setRevealed(false)
+  }, [clearRecallTimers, settings.displayMode])
+
+  useEffect(() => clearRecallTimers, [clearRecallTimers])
+
   useEffect(() => {
     const [hours, minutes] = settings.poolRefreshTime.split(':').map(Number)
     const now = new Date()
@@ -136,13 +151,37 @@ export function WidgetView() {
     if (currentCard) void exportLockscreenCard(currentCard, settings).catch(console.error)
   }, [currentCard, settings])
 
-  const conceal = settings.displayMode === 'quiz' && !revealed
+  const concealment = !revealed
+    ? settings.displayMode === 'quiz' ? 'all' : settings.displayMode === 'active-recall' ? 'answers' : 'none'
+    : 'none'
   const rootStyle = useMemo(() => ({ '--widget-opacity': settings.opacity } as React.CSSProperties), [settings.opacity])
+
+  const revealRecallAnswer = () => {
+    if (settings.displayMode !== 'active-recall' || revealed) return
+    if (concealTimer.current !== null) window.clearTimeout(concealTimer.current)
+    concealTimer.current = null
+    if (revealTimer.current !== null) return
+    revealTimer.current = window.setTimeout(() => {
+      revealTimer.current = null
+      setRevealed(true)
+    }, 300)
+  }
+
+  const concealRecallAnswer = () => {
+    if (settings.displayMode !== 'active-recall') return
+    if (revealTimer.current !== null) window.clearTimeout(revealTimer.current)
+    revealTimer.current = null
+    if (!revealed || concealTimer.current !== null) return
+    concealTimer.current = window.setTimeout(() => {
+      concealTimer.current = null
+      setRevealed(false)
+    }, 180)
+  }
 
   const handleCardClick = (event: React.MouseEvent) => {
     if (contextOpen) return setContextOpen(false)
     if (event.ctrlKey) return previous()
-    if (settings.displayMode === 'quiz' && !revealed) return setRevealed(true)
+    if (settings.displayMode !== 'full' && !revealed) return setRevealed(true)
     next()
   }
 
@@ -159,7 +198,7 @@ export function WidgetView() {
       className={`widget-shell theme-${settings.theme} font-${settings.fontSize}`}
       style={rootStyle}
       onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => { setPaused(false); setContextOpen(false) }}
+      onMouseLeave={() => { setPaused(false); setContextOpen(false); concealRecallAnswer() }}
       onWheel={handleWheel}
       onContextMenu={(event) => { event.preventDefault(); setContextOpen(true) }}
     >
@@ -183,12 +222,20 @@ export function WidgetView() {
       >
         <Grip size={14} aria-hidden="true" />
       </div>
-      <button className="widget-main" type="button" onClick={handleCardClick} aria-label={tr('Next card', 'Следующая карточка')}>
+      <button
+        className="widget-main"
+        type="button"
+        onClick={handleCardClick}
+        onMouseEnter={revealRecallAnswer}
+        onMouseLeave={concealRecallAnswer}
+        onBlur={concealRecallAnswer}
+        aria-label={settings.displayMode !== 'full' && !revealed ? tr('Reveal answer', 'Показать ответ') : tr('Next card', 'Следующая карточка')}
+      >
         {loading ? (
           <div className="widget-loading"><span /><span /><span /></div>
         ) : currentCard ? (
           <div className="card-transition" key={`${currentCard.id}-${revealed}`}>
-            <KanjiCard card={currentCard} settings={settings} concealed={conceal} />
+            <KanjiCard card={currentCard} settings={settings} concealment={concealment} />
           </div>
         ) : (
           <div className="widget-empty">{tr('The deck is empty', 'Колода пуста')}</div>

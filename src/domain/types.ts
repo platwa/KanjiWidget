@@ -1,6 +1,6 @@
 export type JlptLevel = 'N5' | 'N4' | 'N3' | 'N2' | 'N1'
 export type ThemeMode = 'dark' | 'light' | 'auto'
-export type DisplayMode = 'full' | 'quiz'
+export type DisplayMode = 'full' | 'active-recall' | 'quiz'
 export type FontSize = 'sm' | 'md' | 'lg'
 export type QuestionType = 'kanji-meaning' | 'meaning-kanji' | 'kanji-reading' | 'onyomi-kanji'
 
