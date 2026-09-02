@@ -7,7 +7,7 @@
     <meta name="google" content="notranslate" />
     <meta
       name="description"
-      content="KanjiWidget is a free, open-source Windows widget that keeps Japanese in sight and schedules focused reviews with FSRS."
+      content="KanjiWidget is a free, open-source kanji desktop widget for Windows: passive exposure, active recall, FSRS reviews, and text import from Anki .apkg decks."
     />
     <meta property="og:title" content="KanjiWidget — learn kanji without opening another app" />
     <meta
@@ -26,7 +26,7 @@
     <link rel="icon" href="images/widget-en.png" />
     <link rel="canonical" href="https://platwa.github.io/KanjiWidget/" />
     <link rel="stylesheet" href="styles.css" />
-    <title>KanjiWidget — Japanese stays in sight</title>
+    <title>Free Kanji Desktop Widget for Windows | KanjiWidget</title>
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -53,6 +53,38 @@
           "https://platwa.github.io/KanjiWidget/images/settings-en.png"
         ],
         "inLanguage": ["en", "ru"]
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Is KanjiWidget an alternative to Anki?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "KanjiWidget is a lighter companion or alternative for learners who want kanji to stay visible on the Windows desktop. It also includes focused FSRS reviews and can import text from Anki .apkg decks."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Does KanjiWidget work offline?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. Cards, settings, and review history stay in a local SQLite database. Normal study activity needs no account or network connection."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Is KanjiWidget free?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. KanjiWidget is free and open source under the Apache-2.0 license, with no ads, subscriptions, analytics, or telemetry."
+            }
+          }
+        ]
       }
     </script>
   </head>
@@ -188,6 +220,67 @@
           </p>
         </div>
         <a class="text-link" href="https://github.com/platwa/KanjiWidget/blob/main/PRIVACY.md" data-en="Read the privacy statement →" data-ru="Прочитать заявление о приватности →">Read the privacy statement →</a>
+      </section>
+
+      <section class="section comparison-section" id="anki-alternative">
+        <div class="comparison-heading reveal">
+          <p class="eyebrow" data-en="A different kind of repetition" data-ru="Другой подход к повторению">A different kind of repetition</p>
+          <h2 data-en="A gentler alternative to opening Anki." data-ru="Более спокойная альтернатива постоянному запуску Anki.">
+            A gentler alternative to opening Anki.
+          </h2>
+          <p data-en="Anki is a powerful flashcard system. KanjiWidget solves a narrower problem: keeping Japanese close enough that studying does not always have to begin with a deliberate session." data-ru="Anki — мощная система карточек. KanjiWidget решает более узкую задачу: держит японский достаточно близко, чтобы обучение не всегда требовало отдельного занятия.">
+            Anki is a powerful flashcard system. KanjiWidget solves a narrower problem: keeping Japanese close enough that studying does not always have to begin with a deliberate session.
+          </p>
+        </div>
+        <div class="comparison-grid">
+          <article class="comparison-card comparison-card-accent reveal">
+            <span class="comparison-label">KanjiWidget</span>
+            <h3 data-en="Japanese stays on your desktop" data-ru="Японский остаётся на рабочем столе">Japanese stays on your desktop</h3>
+            <ul>
+              <li data-en="Passive exposure throughout the day" data-ru="Фоновый контакт с языком в течение дня">Passive exposure throughout the day</li>
+              <li data-en="Active Recall answers appear on hover" data-ru="Ответы в Active Recall появляются по наведению">Active Recall answers appear on hover</li>
+              <li data-en="Focused reviews use FSRS scheduling" data-ru="Полноценные повторения планируются по FSRS">Focused reviews use FSRS scheduling</li>
+              <li data-en="Imports text from Anki .apkg decks" data-ru="Импортирует текст из колод Anki .apkg">Imports text from Anki .apkg decks</li>
+            </ul>
+          </article>
+          <article class="comparison-card reveal">
+            <span class="comparison-label">Anki</span>
+            <h3 data-en="A complete flashcard toolbox" data-ru="Полноценный конструктор карточек">A complete flashcard toolbox</h3>
+            <ul>
+              <li data-en="Best for deliberate study sessions" data-ru="Лучше всего подходит для отдельных занятий">Best for deliberate study sessions</li>
+              <li data-en="Rich media, add-ons, and synchronization" data-ru="Медиа, дополнения и синхронизация">Rich media, add-ons, and synchronization</li>
+              <li data-en="Supports subjects far beyond Japanese" data-ru="Подходит не только для японского языка">Supports subjects far beyond Japanese</li>
+              <li data-en="Can remain your source deck" data-ru="Может оставаться основной базой карточек">Can remain your source deck</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section class="section faq-section" id="faq">
+        <div class="faq-heading reveal">
+          <p class="eyebrow" data-en="Good to know" data-ru="Полезно знать">Good to know</p>
+          <h2 data-en="Questions before downloading." data-ru="Вопросы перед скачиванием.">Questions before downloading.</h2>
+        </div>
+        <div class="faq-grid">
+          <article class="faq-item reveal">
+            <h3 data-en="Is it an Anki replacement?" data-ru="Это замена Anki?">Is it an Anki replacement?</h3>
+            <p data-en="It can be, if you mainly study kanji and want less friction. It also works well beside Anki: import a text-only .apkg deck and let the widget keep a small pool visible." data-ru="Может быть, если вы в основном учите кандзи и хотите меньше лишних действий. Его также удобно использовать вместе с Anki: импортируйте текстовую колоду .apkg и оставьте небольшой пул на экране.">
+              It can be, if you mainly study kanji and want less friction. It also works well beside Anki: import a text-only .apkg deck and let the widget keep a small pool visible.
+            </p>
+          </article>
+          <article class="faq-item reveal">
+            <h3 data-en="Does it need the internet?" data-ru="Нужен интернет?">Does it need the internet?</h3>
+            <p data-en="No. Normal study is completely local. Cards, settings, and review history stay in a SQLite database on your computer." data-ru="Нет. Обычное обучение полностью локально. Карточки, настройки и история повторений хранятся в базе SQLite на вашем компьютере.">
+              No. Normal study is completely local. Cards, settings, and review history stay in a SQLite database on your computer.
+            </p>
+          </article>
+          <article class="faq-item reveal">
+            <h3 data-en="Why might SmartScreen warn me?" data-ru="Почему SmartScreen может показать предупреждение?">Why might SmartScreen warn me?</h3>
+            <p data-en="The current build is not code-signed yet. The source and SHA-256 checksums are public, and open-source code signing is being prepared." data-ru="Текущая сборка пока не подписана сертификатом. Исходный код и SHA-256 открыты, а бесплатная подпись для open-source проекта уже готовится.">
+              The current build is not code-signed yet. The source and SHA-256 checksums are public, and open-source code signing is being prepared.
+            </p>
+          </article>
+        </div>
       </section>
 
       <section class="download-section" id="download">

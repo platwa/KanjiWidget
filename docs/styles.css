@@ -510,6 +510,88 @@ h2 {
     rgba(15, 20, 31, 0.84);
 }
 
+.comparison-section {
+  display: grid;
+  grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
+  gap: 64px;
+  align-items: start;
+}
+
+.comparison-heading p:last-child {
+  max-width: 590px;
+  color: var(--muted);
+}
+
+.comparison-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.comparison-card,
+.faq-item {
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: rgba(14, 19, 32, 0.7);
+}
+
+.comparison-card {
+  padding: 27px 29px;
+}
+
+.comparison-card-accent {
+  border-color: rgba(139, 124, 246, 0.38);
+  background: linear-gradient(145deg, rgba(74, 67, 135, 0.26), rgba(14, 19, 32, 0.8));
+}
+
+.comparison-label {
+  display: inline-block;
+  margin-bottom: 13px;
+  color: var(--accent-soft);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.comparison-card h3,
+.faq-item h3 {
+  margin: 0 0 13px;
+}
+
+.comparison-card ul {
+  display: grid;
+  gap: 9px;
+  margin: 0;
+  padding-left: 19px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.faq-section {
+  padding-top: 42px;
+}
+
+.faq-heading {
+  max-width: 720px;
+  margin-bottom: 34px;
+}
+
+.faq-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.faq-item {
+  padding: 25px;
+}
+
+.faq-item p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
 .privacy-card h2 { max-width: 720px; font-size: clamp(2rem, 4vw, 3.6rem); }
 .privacy-card p { max-width: 760px; margin-bottom: 0; }
 
@@ -606,6 +688,8 @@ footer {
   .feature-card-large { grid-template-columns: 1fr; gap: 35px; }
   .two-column { grid-template-columns: 1fr; gap: 35px; }
   .privacy-card { grid-template-columns: 1fr; align-items: start; }
+  .comparison-section { grid-template-columns: 1fr; gap: 35px; }
+  .faq-grid { grid-template-columns: 1fr; }
   .text-link { white-space: normal; }
 }
 

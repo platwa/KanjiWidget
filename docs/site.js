@@ -29,8 +29,8 @@ function setLanguage(language) {
   });
 
   document.title = lang === "ru"
-    ? "KanjiWidget — японский всегда перед глазами"
-    : "KanjiWidget — Japanese stays in sight";
+    ? "Бесплатный виджет для изучения кандзи | KanjiWidget"
+    : "Free Kanji Desktop Widget for Windows | KanjiWidget";
 }
 
 document.getElementById("language-toggle").addEventListener("click", () => {
