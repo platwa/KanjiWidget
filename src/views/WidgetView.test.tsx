@@ -104,6 +104,8 @@ describe('widget pool updates', () => {
     const view = render(<WidgetView />)
     const cardButton = await view.findByRole('button', { name: 'Reveal answer' })
     const sentence = view.container.querySelector('.ruby-text')
+    const kanji = view.container.querySelector('.kanji-glyph')
+    const exampleFurigana = sentence?.querySelector('rt')
 
     expect(view.container.querySelector('.kanji-card-content')).toHaveClass('concealed-answers')
     expect(sentence).toHaveAttribute('aria-label', '今日は日曜日です。')
@@ -112,9 +114,15 @@ describe('widget pool updates', () => {
     fireEvent.mouseEnter(cardButton)
     await waitFor(() => expect(view.container.querySelector('.kanji-card-content')).toHaveClass('concealed-none'), { timeout: 600 })
     expect(view.getByText('Today is Sunday.')).toHaveAttribute('aria-hidden', 'false')
+    expect(view.container.querySelector('.kanji-glyph')).toBe(kanji)
+    expect(view.container.querySelector('.ruby-text')).toBe(sentence)
+    expect(view.container.querySelector('.ruby-text rt')).toBe(exampleFurigana)
 
     fireEvent.mouseLeave(cardButton)
     await waitFor(() => expect(view.container.querySelector('.kanji-card-content')).toHaveClass('concealed-answers'), { timeout: 500 })
+    expect(view.container.querySelector('.kanji-glyph')).toBe(kanji)
+    expect(view.container.querySelector('.ruby-text')).toBe(sentence)
+    expect(view.container.querySelector('.ruby-text rt')).toBe(exampleFurigana)
   })
 
   it('reveals the active-recall answer immediately when the card is activated', async () => {

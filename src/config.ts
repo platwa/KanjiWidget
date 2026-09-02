@@ -1,7 +1,7 @@
 import type { Language } from './i18n'
 
 export const APP_NAME = 'KanjiWidget'
-export const APP_VERSION = '1.4.0'
+export const APP_VERSION = '1.4.1'
 export const SUPPORT_EMAIL = 'support.kanjiwidget@gmail.com'
 export const SOURCE_URL = 'https://github.com/platwa/KanjiWidget'
 export const ISSUES_URL = `${SOURCE_URL}/issues/new/choose`

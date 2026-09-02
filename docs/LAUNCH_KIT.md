@@ -13,8 +13,8 @@ KanjiWidget is a desktop companion, not a claim to replace every Anki workflow. 
 ## Links
 
 - Repository: https://github.com/platwa/KanjiWidget
-- Release: https://github.com/platwa/KanjiWidget/releases/tag/v1.4.0
-- Recommended installer: https://github.com/platwa/KanjiWidget/releases/download/v1.4.0/KanjiWidget-1.4.0-x64-Setup.exe
+- Release: https://github.com/platwa/KanjiWidget/releases/tag/v1.4.1
+- Recommended installer: https://github.com/platwa/KanjiWidget/releases/download/v1.4.1/KanjiWidget-1.4.1-x64-Setup.exe
 - Issues: https://github.com/platwa/KanjiWidget/issues
 - Support: support.kanjiwidget@gmail.com
 - Tribute: https://web.tribute.tg/d/PHT

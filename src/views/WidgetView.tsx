@@ -234,7 +234,7 @@ export function WidgetView() {
         {loading ? (
           <div className="widget-loading"><span /><span /><span /></div>
         ) : currentCard ? (
-          <div className="card-transition" key={`${currentCard.id}-${revealed}`}>
+          <div className="card-transition" key={currentCard.id}>
             <KanjiCard card={currentCard} settings={settings} concealment={concealment} />
           </div>
         ) : (
