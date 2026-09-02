@@ -5,6 +5,8 @@
 </p>
 
 <p align="center">
+  <a href="https://platwa.github.io/KanjiWidget/"><strong>Website</strong></a>
+  ·
   <a href="https://github.com/platwa/KanjiWidget/releases/download/v1.4.1/KanjiWidget-1.4.1-x64-Setup.exe"><strong>Download for Windows</strong></a>
   · <a href="https://github.com/platwa/KanjiWidget/releases/tag/v1.4.1">Release notes</a>
   · <a href="#русский">Русский</a>
@@ -119,6 +121,8 @@ KanjiWidget source code is licensed under the [Apache License 2.0](LICENSE). Thi
 </p>
 
 <p align="center">
+  <a href="https://platwa.github.io/KanjiWidget/"><strong>Сайт</strong></a>
+  ·
   <a href="https://github.com/platwa/KanjiWidget/releases/download/v1.4.1/KanjiWidget-1.4.1-x64-Setup.exe"><strong>Скачать для Windows</strong></a>
   · <a href="https://github.com/platwa/KanjiWidget/releases/tag/v1.4.1">Описание релиза</a>
 </p>
