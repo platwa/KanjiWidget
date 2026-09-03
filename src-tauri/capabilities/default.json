@@ -20,9 +20,11 @@
     "sql:allow-execute",
     "sql:allow-select",
     "dialog:allow-open",
+    "dialog:allow-message",
     "autostart:allow-enable",
     "autostart:allow-disable",
     "autostart:allow-is-enabled",
+    "updater:default",
     "opener:allow-open-url",
     "opener:allow-default-urls"
   ]

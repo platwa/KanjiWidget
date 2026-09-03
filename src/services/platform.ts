@@ -258,3 +258,21 @@ export async function openExternal(url: string) {
   const { openUrl } = await import('@tauri-apps/plugin-opener')
   await openUrl(url)
 }
+
+export type AvailableAppUpdate = {
+  version: string
+  notes?: string
+  install: () => Promise<void>
+}
+
+export async function checkForAppUpdate(): Promise<AvailableAppUpdate | null> {
+  if (!isTauri()) return null
+  const { check } = await import('@tauri-apps/plugin-updater')
+  const update = await check()
+  if (!update) return null
+  return {
+    version: update.version,
+    notes: update.body,
+    install: () => update.downloadAndInstall(),
+  }
+}

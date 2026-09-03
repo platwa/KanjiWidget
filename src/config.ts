@@ -1,13 +1,15 @@
 import type { Language } from './i18n'
 
 export const APP_NAME = 'KanjiWidget'
-export const APP_VERSION = '1.4.1'
+export const APP_VERSION = '1.5.0'
 export const SUPPORT_EMAIL = 'support.kanjiwidget@gmail.com'
 export const SOURCE_URL = 'https://github.com/platwa/KanjiWidget'
 export const ISSUES_URL = `${SOURCE_URL}/issues/new/choose`
 export const SUPPORT_URL = 'https://web.tribute.tg/d/PHT'
 export const SUPPORT_REMINDER_DAYS = 7
 export const SUPPORT_REMINDER_KEY = 'kanjiwidget.support-reminder-next-at.v3'
+export const UPDATE_CHECK_KEY = 'kanjiwidget.update-check-next-at.v1'
+export const UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000
 
 export function contactEmailUrl(language: Language) {
   const subject = language === 'ru' ? 'Обратная связь по KanjiWidget' : 'KanjiWidget feedback'

@@ -1,0 +1,12 @@
+{
+  "bundle": {
+    "targets": ["nsis"],
+    "publisher": "Vladimir Stepanov",
+    "createUpdaterArtifacts": false,
+    "windows": {
+      "webviewInstallMode": {
+        "type": "offlineInstaller"
+      }
+    }
+  }
+}

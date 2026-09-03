@@ -10,9 +10,13 @@ Only release artifacts built from the public [KanjiWidget repository](https://gi
 
 1. Windows artifacts are built from a tagged commit in GitHub Actions.
 2. Automated tests, linting, and dependency checks run before packaging.
-3. Release artifacts and SHA-256 checksums are retained together.
-4. The project owner manually approves signing and publication.
-5. Signed artifacts are published only through the official GitHub Releases page.
+3. SignPath applies the CA-trusted Authenticode signature to the application and installer.
+4. The final Authenticode-signed updater installer is signed with KanjiWidget's separate Tauri updater key. This order is required because Authenticode signing changes the installer bytes.
+5. Release artifacts, updater signatures, and SHA-256 checksums are retained together.
+6. The project owner manually approves signing and publication.
+7. Signed artifacts are published only through the official GitHub Releases page.
+
+The updater public key is stored in the application configuration. Its private key is kept outside the repository and is provided to the release workflow only as a protected secret.
 
 ## Team roles
 
@@ -23,7 +27,7 @@ All maintainers with repository or signing access are required to use multi-fact
 
 ## Privacy
 
-KanjiWidget does not include analytics, telemetry, advertising, or background synchronization. This program will not transfer any information to other networked systems unless specifically requested by the user or the person installing or operating it. See the complete [privacy statement](PRIVACY.md).
+KanjiWidget does not include analytics, telemetry, advertising, or background synchronization. It requests the public GitHub Releases update manifest at most once per day and asks before installing an available update. No decks, review history, or settings are included in the request. See the complete [privacy statement](PRIVACY.md).
 
 ## Reporting concerns
 

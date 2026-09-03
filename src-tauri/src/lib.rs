@@ -342,6 +342,9 @@ pub fn run() {
             anki::import_anki_cards
         ])
         .setup(|app| {
+            #[cfg(desktop)]
+            app.handle()
+                .plugin(tauri_plugin_updater::Builder::new().build())?;
             if let Some(window) = app.get_webview_window("main") {
                 window.set_min_size(Some(LogicalSize::new(280.0, 270.0)))?;
                 let size = window

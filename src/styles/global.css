@@ -5,6 +5,11 @@
   font-display: swap;
 }
 
+.update-card { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding-block: 15px; }
+.update-card h3 { margin: 0 0 5px; font-size: 12px; }
+.update-card p { margin: 0; color: var(--text-muted); font-size: 9px; line-height: 1.5; }
+.update-card .secondary-button { flex: 0 0 auto; }
+
 @font-face {
   font-family: 'Noto Serif JP';
   src: url('../assets/fonts/NotoSerifJP.woff2') format('woff2');
