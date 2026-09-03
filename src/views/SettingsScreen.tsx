@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import {
   Bug, Check, ChevronRight, Clock3, FolderOpen, Github, Heart, Info, Layers3,
-  LibraryBig, Mail, MonitorCog, Palette, Plus, RefreshCcw, RotateCcw, Save,
+  LibraryBig, Mail, MonitorCog, Palette, Plus, RefreshCcw, RotateCcw, Save, Sparkles,
   ShieldCheck, Trash2, X,
 } from 'lucide-react'
 import { AnkiImportPanel } from '../components/AnkiImportPanel'
@@ -15,7 +15,8 @@ import {
 import { DEFAULT_SETTINGS, DECKS } from '../domain/defaults'
 import type { AppSettings, Deck, DisplayMode, FontSize, ThemeMode } from '../domain/types'
 import { applyDocumentLanguage, cardCountLabel, numberLocale, tx } from '../i18n'
-import { listenAppEvent, openExternal, pickLockscreenFolder, setAutostart } from '../services/platform'
+import { checkForAppUpdate, listenAppEvent, openExternal, pickLockscreenFolder, setAutostart } from '../services/platform'
+import type { AvailableAppUpdate } from '../services/platform'
 import { deleteCustomDeck, getDeckProgress, getDecks, loadSettings, resetDeckProgress, saveSettings } from '../services/storage'
 
 type SectionId = 'appearance' | 'widget' | 'learning' | 'decks' | 'lockscreen' | 'about'
@@ -33,6 +34,8 @@ export function SettingsScreen() {
   const [notice, setNotice] = useState('')
   const [busy, setBusy] = useState(false)
   const [supportOpen, setSupportOpen] = useState(false)
+  const [availableUpdate, setAvailableUpdate] = useState<AvailableAppUpdate | null>(null)
+  const [updateStatus, setUpdateStatus] = useState<'idle' | 'checking' | 'current' | 'installing' | 'error'>('idle')
   const [managerRequest, setManagerRequest] = useState<ManagerRequest | null>(() => {
     const deckId = initialParams.get('deckId')
     const cardId = initialParams.get('cardId')
@@ -105,6 +108,21 @@ export function SettingsScreen() {
       window.setTimeout(() => setNotice(''), 2500)
     } finally {
       setBusy(false)
+    }
+  }
+  const handleUpdate = async () => {
+    if (availableUpdate) {
+      setUpdateStatus('installing')
+      try { await availableUpdate.install() } catch { setUpdateStatus('error') }
+      return
+    }
+    setUpdateStatus('checking')
+    try {
+      const update = await checkForAppUpdate()
+      setAvailableUpdate(update)
+      setUpdateStatus(update ? 'idle' : 'current')
+    } catch {
+      setUpdateStatus('error')
     }
   }
   const deckDescription = (deck: Deck, count: number) => {
@@ -207,6 +225,7 @@ export function SettingsScreen() {
 
           {section === 'about' && <SettingsSection eyebrow={tr('About', 'О программе')} title={`${APP_NAME} ${APP_VERSION}`} description={tr('Calm, spaced Japanese learning right on your desktop.', 'Ненавязчивое интервальное обучение японскому прямо на рабочем столе.')}>
             <div className="about-hero"><span>字</span><div><strong>{tr('Learn a little. Remember for longer.', 'Учите понемногу. Помните надолго.')}</strong><small>{tr('A local app for Windows 10 and 11', 'Локальное приложение для Windows 10 и 11')}</small></div></div>
+            <div className="settings-card update-card"><div><h3>{tr('App updates', 'Обновления приложения')}</h3><p>{availableUpdate ? tr(`Version ${availableUpdate.version} is ready to install.`, `Версия ${availableUpdate.version} готова к установке.`) : updateStatus === 'current' ? tr('You have the latest version.', 'У вас установлена последняя версия.') : updateStatus === 'error' ? tr('Could not check for updates. Try again later.', 'Не удалось проверить обновления. Попробуйте позже.') : tr('KanjiWidget checks GitHub once a day for signed releases.', 'KanjiWidget раз в сутки проверяет подписанные выпуски на GitHub.')}</p></div><button type="button" className="secondary-button" disabled={updateStatus === 'checking' || updateStatus === 'installing'} onClick={handleUpdate}>{updateStatus === 'checking' || updateStatus === 'installing' ? <RefreshCcw size={16} className="spin" /> : <Sparkles size={16} />}{availableUpdate ? tr('Install update', 'Установить обновление') : tr('Check now', 'Проверить сейчас')}</button></div>
             <div className="settings-card contact-card"><div><h3>{tr('Feedback and support', 'Обратная связь и поддержка')}</h3><p>{tr('Found a problem or have an idea? Send a pre-filled report by email. Please do not attach private Anki data.', 'Нашли ошибку или есть идея? Отправьте подготовленное письмо. Не прикладывайте личные данные из Anki.')}</p></div><div className="contact-actions"><button type="button" className="secondary-button" onClick={() => openLink(bugReportUrl(language))}><Bug size={16} />{tr('Report a bug', 'Сообщить об ошибке')}</button><button type="button" className="secondary-button" onClick={() => openLink(ISSUES_URL)}><Github size={16} />GitHub Issues</button></div><a href={contactEmailUrl(language)} onClick={(event) => { event.preventDefault(); openLink(contactEmailUrl(language)) }}><Mail size={15} />{SUPPORT_EMAIL}</a></div>
             <div className="settings-card license-copy"><h3>{tr('Code, data and licenses', 'Код, данные и лицензии')}</h3><p>{tr('KanjiWidget source code is available under Apache License 2.0. Dictionary data derived from JMdict/KANJIDIC2 remains under CC BY-SA 4.0.', 'Исходный код KanjiWidget доступен по Apache License 2.0. Словарные данные на основе JMdict/KANJIDIC2 сохраняют лицензию CC BY-SA 4.0.')}</p><button type="button" className="link-button" onClick={() => openLink(SOURCE_URL)}>{tr('Source code', 'Исходный код')} <ChevronRight size={14} /></button><button type="button" className="link-button" onClick={() => openLink('https://www.edrdg.org/edrdg/licence.html')}>{tr('EDRDG license', 'Лицензия EDRDG')} <ChevronRight size={14} /></button></div>
             <div className="version-line"><span>{tr('Version', 'Версия')} {APP_VERSION}</span><span>{tr('Made for calm, focused learning', 'Сделано для спокойного обучения')}</span></div>

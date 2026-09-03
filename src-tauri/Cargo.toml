@@ -1,6 +1,6 @@
 [package]
 name = "kanji-widget"
-version = "1.4.1"
+version = "1.5.0"
 description = "Minimal Japanese kanji desktop widget"
 authors = ["KanjiWidget"]
 license = "Apache-2.0"
@@ -43,3 +43,6 @@ codegen-units = 1
 lto = true
 opt-level = "s"
 strip = true
+
+[target.'cfg(any(target_os = "macos", windows, target_os = "linux"))'.dependencies]
+tauri-plugin-updater = "2.11.0"

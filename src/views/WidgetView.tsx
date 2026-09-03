@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { BookOpenCheck, ChevronLeft, ChevronRight, Grip, LogOut, Pause, Pencil, Play, Settings2 } from 'lucide-react'
 import { KanjiCard } from '../components/KanjiCard'
+import { UPDATE_CHECK_INTERVAL_MS, UPDATE_CHECK_KEY } from '../config'
 import { DEFAULT_SETTINGS } from '../domain/defaults'
 import type { AppSettings, Card } from '../domain/types'
 import { applyDocumentLanguage, tx } from '../i18n'
 import {
   applyWidgetWindowSettings,
   beginWidgetDrag,
+  checkForAppUpdate,
   endWidgetDrag,
   exitApplication,
   exportLockscreenCard,
@@ -81,6 +83,33 @@ export function WidgetView() {
     ]
     return () => { void Promise.all(cleanups).then((items) => items.forEach((cleanup) => cleanup())) }
   }, [refresh])
+
+  useEffect(() => {
+    if (loading) return
+    const nextCheck = Number(localStorage.getItem(UPDATE_CHECK_KEY) ?? 0)
+    if (Number.isFinite(nextCheck) && nextCheck > Date.now()) return
+    localStorage.setItem(UPDATE_CHECK_KEY, String(Date.now() + UPDATE_CHECK_INTERVAL_MS))
+    let cancelled = false
+    void checkForAppUpdate().then(async (update) => {
+      if (!update || cancelled) return
+      const { ask } = await import('@tauri-apps/plugin-dialog')
+      const install = await ask(
+        tx(
+          language,
+          `KanjiWidget ${update.version} is available. Install it now? The app will close while the update is installed.`,
+          `Доступна версия KanjiWidget ${update.version}. Установить её сейчас? Во время обновления приложение закроется.`,
+        ),
+        {
+          title: tx(language, 'KanjiWidget update', 'Обновление KanjiWidget'),
+          kind: 'info',
+          okLabel: tx(language, 'Install', 'Установить'),
+          cancelLabel: tx(language, 'Later', 'Позже'),
+        },
+      )
+      if (install && !cancelled) await update.install()
+    }).catch((error) => console.warn('KanjiWidget update check failed', error))
+    return () => { cancelled = true }
+  }, [language, loading])
 
   const currentCard = cards[index]
   const clearRecallTimers = useCallback(() => {
