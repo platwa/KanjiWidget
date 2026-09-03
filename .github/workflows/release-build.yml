@@ -2,6 +2,12 @@ name: Build Windows release
 
 on:
   workflow_dispatch:
+    inputs:
+      microsoft_store:
+        description: "Build the Microsoft Store offline NSIS installer"
+        required: false
+        type: boolean
+        default: false
   push:
     tags:
       - "v*"
@@ -42,7 +48,13 @@ jobs:
         run: pnpm test
 
       - name: Build Windows packages
-        run: pnpm tauri build
+        shell: pwsh
+        run: |
+          if ("${{ inputs.microsoft_store }}" -eq "true") {
+            pnpm tauri build --config src-tauri/tauri.microsoftstore.conf.json
+          } else {
+            pnpm tauri build
+          }
 
       - name: Stage release files
         shell: pwsh
@@ -51,14 +63,18 @@ jobs:
           $destination = Join-Path $PWD "release-output"
           New-Item -ItemType Directory -Path $destination -Force | Out-Null
 
-          Copy-Item "src-tauri/target/release/kanji-widget.exe" (Join-Path $destination "KanjiWidget-$version-x64-Portable.exe")
-
           $setup = Get-ChildItem "src-tauri/target/release/bundle/nsis" -Filter "*.exe" | Select-Object -First 1
-          $msi = Get-ChildItem "src-tauri/target/release/bundle/msi" -Filter "*.msi" | Select-Object -First 1
-          if (-not $setup -or -not $msi) { throw "Tauri did not produce both NSIS and MSI packages." }
+          if (-not $setup) { throw "Tauri did not produce an NSIS package." }
 
-          Copy-Item $setup.FullName (Join-Path $destination "KanjiWidget-$version-x64-Setup.exe")
-          Copy-Item $msi.FullName (Join-Path $destination "KanjiWidget-$version-x64.msi")
+          if ("${{ inputs.microsoft_store }}" -eq "true") {
+            Copy-Item $setup.FullName (Join-Path $destination "KanjiWidget-$version-x64-MicrosoftStore-Setup.exe")
+          } else {
+            Copy-Item "src-tauri/target/release/kanji-widget.exe" (Join-Path $destination "KanjiWidget-$version-x64-Portable.exe")
+            $msi = Get-ChildItem "src-tauri/target/release/bundle/msi" -Filter "*.msi" | Select-Object -First 1
+            if (-not $msi) { throw "Tauri did not produce an MSI package." }
+            Copy-Item $setup.FullName (Join-Path $destination "KanjiWidget-$version-x64-Setup.exe")
+            Copy-Item $msi.FullName (Join-Path $destination "KanjiWidget-$version-x64.msi")
+          }
 
           Get-ChildItem $destination -File | Sort-Object Name | ForEach-Object {
             $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $_.FullName).Hash.ToLowerInvariant()
@@ -68,7 +84,7 @@ jobs:
       - name: Upload unsigned release artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: KanjiWidget-Windows-unsigned
+          name: ${{ inputs.microsoft_store && 'KanjiWidget-MicrosoftStore-unsigned' || 'KanjiWidget-Windows-unsigned' }}
           path: release-output/*
           if-no-files-found: error
           retention-days: 30
