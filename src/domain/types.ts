@@ -111,6 +111,7 @@ export interface AppSettings {
   showOnyomi: boolean
   showKunyomi: boolean
   showFurigana: boolean
+  showRomaji: boolean
   language: 'ru' | 'en'
   theme: ThemeMode
   opacity: number

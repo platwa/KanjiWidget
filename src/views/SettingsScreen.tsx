@@ -13,8 +13,9 @@ import {
   SUPPORT_URL,
 } from '../config'
 import { DEFAULT_SETTINGS, DECKS } from '../domain/defaults'
+import { normalizeSettings } from '../domain/settings'
 import type { AppSettings, Deck, DisplayMode, FontSize, ThemeMode } from '../domain/types'
-import { applyDocumentLanguage, cardCountLabel, numberLocale, tx } from '../i18n'
+import { applyDocumentLanguage, cardCountLabel, localizedError, numberLocale, tx } from '../i18n'
 import { checkForAppUpdate, listenAppEvent, openExternal, pickLockscreenFolder, setAutostart } from '../services/platform'
 import type { AvailableAppUpdate } from '../services/platform'
 import { deleteCustomDeck, getDeckProgress, getDecks, loadSettings, resetDeckProgress, saveSettings } from '../services/storage'
@@ -68,9 +69,10 @@ export function SettingsScreen() {
       setSettings(value)
       setSaved(value)
       const reminder = localStorage.getItem(SUPPORT_REMINDER_KEY)
-      if (isSupportReminderDue(reminder)) setSupportOpen(true)
-    })
-    void refreshProgress()
+      if (!reminder) localStorage.setItem(SUPPORT_REMINDER_KEY, nextSupportReminderDate())
+      else if (isSupportReminderDue(reminder)) setSupportOpen(true)
+    }).catch((reason: unknown) => setNotice(localizedError(DEFAULT_SETTINGS.language, reason)))
+    void refreshProgress().catch((reason: unknown) => setNotice(localizedError(DEFAULT_SETTINGS.language, reason)))
   }, [])
   useEffect(() => { applyDocumentLanguage(language) }, [language])
   useEffect(() => {
@@ -101,11 +103,15 @@ export function SettingsScreen() {
   const handleSave = async () => {
     setBusy(true)
     try {
-      await saveSettings(settings)
-      await setAutostart(settings.autostart)
-      setSaved(settings)
+      const normalized = normalizeSettings(settings)
+      await setAutostart(normalized.autostart)
+      await saveSettings(normalized)
+      setSettings(normalized)
+      setSaved(normalized)
       setNotice(tr('Settings saved', 'Настройки сохранены'))
       window.setTimeout(() => setNotice(''), 2500)
+    } catch (reason) {
+      setNotice(localizedError(language, reason))
     } finally {
       setBusy(false)
     }
@@ -169,9 +175,11 @@ export function SettingsScreen() {
           {section === 'widget' && <SettingsSection eyebrow={tr('Widget', 'Виджет')} title={tr('A card on your desktop', 'Карточка на рабочем столе')} description={tr('Choose what the widget shows and how it behaves above other windows.', 'Определите, что показывать и как виджет ведёт себя поверх окон.')}>
             <div className="settings-card">
               <Segmented<DisplayMode> value={settings.displayMode} label={tr('Display mode', 'Режим показа')} onChange={(value) => update('displayMode', value)} options={[{ value: 'full', label: tr('Full card', 'Вся карточка') }, { value: 'active-recall', label: tr('Active recall', 'Активное вспоминание') }, { value: 'quiz', label: tr('Prompt', 'Загадка') }]} />
-              {settings.displayMode === 'active-recall' && <p className="segmented-help">{tr('Kanji and the Japanese example stay visible. Hover over or click the card to reveal the answer.', 'Кандзи и японский пример остаются видимыми. Наведите курсор или нажмите на карточку, чтобы открыть ответ.')}</p>}
+              {settings.displayMode === 'active-recall' && <p className="segmented-help">{tr('The word and example stay visible without readings. Hover over the card to reveal readings and the translation. You can also click or focus the card.', 'Слово и пример остаются видимыми без чтений. Наведите курсор на карточку, чтобы открыть чтения и перевод. Также можно нажать на карточку или выбрать её клавишей Tab.')}</p>}
+              {settings.displayMode === 'quiz' && <p className="segmented-help">{tr('Only the word is visible. Hover over the card to reveal the answer and example. You can also click or focus the card.', 'Видно только слово. Наведите курсор на карточку, чтобы открыть ответ и пример. Также можно нажать на карточку или выбрать её клавишей Tab.')}</p>}
               <div className="settings-divider" />
               <Switch checked={settings.showFurigana} onChange={(value) => update('showFurigana', value)} label={tr('Furigana', 'Фуригана')} description={tr('Readings above kanji', 'Чтения над кандзи')} />
+              <Switch checked={settings.showRomaji} onChange={(value) => update('showRomaji', value)} label={tr('Rōmaji', 'Ромадзи')} description={tr('Latin pronunciation hints, for example gakkō', 'Подсказки латиницей, например gakkō')} />
               <Switch checked={settings.showOnyomi} onChange={(value) => update('showOnyomi', value)} label={tr('Onyomi', 'Онъёми')} description={tr('Sino-Japanese readings', 'Китайские чтения')} />
               <Switch checked={settings.showKunyomi} onChange={(value) => update('showKunyomi', value)} label={tr('Kunyomi', 'Кунъёми')} description={tr('Native Japanese readings', 'Японские чтения')} />
               <Switch checked={settings.alwaysOnTop} onChange={(value) => update('alwaysOnTop', value)} label={tr('Always on top', 'Поверх других окон')} description={tr('Keep the widget visible while you work', 'Виджет остаётся видимым во время работы')} />
@@ -206,7 +214,12 @@ export function SettingsScreen() {
                   {deck.source === 'anki' && <button type="button" className="text-danger" onClick={async () => {
                     if (!window.confirm(tr(`Delete imported deck “${deck.name}”?`, `Удалить импортированную колоду «${deck.name}»?`))) return
                     await deleteCustomDeck(deck.id)
-                    if (settings.deckId === deck.id) { const fallback = { ...settings, deckId: DEFAULT_SETTINGS.deckId }; setSettings(fallback); setSaved(fallback); await saveSettings(fallback) }
+                    if (settings.deckId === deck.id) setSettings((value) => ({ ...value, deckId: DEFAULT_SETTINGS.deckId }))
+                    if (saved.deckId === deck.id) {
+                      const fallback = { ...saved, deckId: DEFAULT_SETTINGS.deckId }
+                      await saveSettings(fallback)
+                      setSaved(fallback)
+                    }
                     if (managerRequest?.deckId === deck.id) setManagerRequest(null)
                     await refreshProgress()
                   }}><Trash2 size={14} />{tr('Delete deck', 'Удалить колоду')}</button>}

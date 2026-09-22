@@ -3,6 +3,7 @@ import {
   bugReportUrl, contactEmailUrl, isSupportReminderDue, nextSupportReminderDate,
   SUPPORT_EMAIL, SUPPORT_URL,
 } from './config'
+import { lockscreenFileName } from './services/platform'
 
 describe('support and contact links', () => {
   it('uses the official Tribute page', () => {
@@ -22,6 +23,14 @@ describe('support and contact links', () => {
   it('builds a usable general contact email', () => {
     expect(decodeURIComponent(contactEmailUrl('ru'))).toContain('Обратная связь по KanjiWidget')
     expect(decodeURIComponent(contactEmailUrl('en'))).toContain('KanjiWidget feedback')
+  })
+})
+
+describe('lock-screen exports', () => {
+  it('uses the full card id for stable, distinct file names', () => {
+    expect(lockscreenFileName('deck:1:見る')).toBe(lockscreenFileName('deck:1:見る'))
+    expect(lockscreenFileName('deck:1:見る')).not.toBe(lockscreenFileName('deck:2:見える'))
+    expect(lockscreenFileName('deck:1:見る')).toMatch(/^kanjiwidget-[0-9a-f]{8}\.png$/)
   })
 })
 

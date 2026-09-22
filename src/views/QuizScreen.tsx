@@ -2,13 +2,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Check, RefreshCcw, Trophy } from 'lucide-react'
 import { EmptyState } from '../components/Controls'
 import { RubyText } from '../components/RubyText'
+import { FittedHeadword } from '../components/FittedHeadword'
 import { WindowChrome } from '../components/WindowChrome'
 import { DEFAULT_SETTINGS } from '../domain/defaults'
 import type { AppSettings, Card, ReviewSummary } from '../domain/types'
-import { applyDocumentLanguage, cardCountLabel, ratingLabel, tx } from '../i18n'
+import { applyDocumentLanguage, cardCountLabel, localizedError, ratingLabel, tx } from '../i18n'
 import { formatDueInterval, previewIntervals } from '../services/scheduler'
 import { closeCurrentWindow, emitAppEvent, listenAppEvent, openAppWindow } from '../services/platform'
 import { buildQuizPool, finishQuizSession, getOrCreateState, loadSettings, reviewCard } from '../services/storage'
+import { romanizeKana } from '../services/romanize'
 
 function shuffled<T>(items: T[]) {
   const result = [...items]
@@ -31,12 +33,15 @@ export function QuizScreen() {
   const [intervals, setIntervals] = useState<Record<number, string>>({})
   const [summary, setSummary] = useState<ReviewSummary[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const ratingBusy = useRef(false)
+  const pendingReview = useRef<Promise<Awaited<ReturnType<typeof reviewCard>>> | null>(null)
   const loadGeneration = useRef(0)
   const activeDeck = useRef(DEFAULT_SETTINGS.deckId)
   const sessionSettings = useRef(DEFAULT_SETTINGS)
   const reviewedCardIds = useRef<Set<string>>(new Set())
   const sessionActive = useRef(false)
+  const endingSession = useRef<Promise<void> | null>(null)
   const windowClass = `app-window quiz-window theme-${settings.theme} font-${settings.fontSize}`
   const language = settings.language
   const tr = (english: string, russian: string) => tx(language, english, russian)
@@ -56,45 +61,71 @@ export function QuizScreen() {
   }, [])
 
   const endSession = useCallback(async () => {
-    if (!sessionActive.current) return
-    await flushSession()
-    sessionActive.current = false
-    await emitAppEvent('kanjiwidget:quiz-session-ended')
+    if (endingSession.current) return endingSession.current
+    const ending = (async () => {
+      await pendingReview.current
+      if (!sessionActive.current) return
+      await flushSession()
+      sessionActive.current = false
+      await emitAppEvent('kanjiwidget:quiz-session-ended')
+    })()
+    endingSession.current = ending
+    try { await ending } finally {
+      if (endingSession.current === ending) endingSession.current = null
+    }
   }, [flushSession])
 
   const startSession = useCallback(async (providedSettings?: AppSettings) => {
     const generation = ++loadGeneration.current
-    ratingBusy.current = false
     setLoading(true)
+    setError('')
     setRevealed(false)
     setIntervals({})
     setSummary([])
-    await endSession()
-    const nextSettings = providedSettings ?? await loadSettings()
-    const pool = shuffled(await buildQuizPool(nextSettings))
-    if (generation !== loadGeneration.current) return
-    activeDeck.current = nextSettings.deckId
-    sessionSettings.current = nextSettings
-    sessionActive.current = true
-    setSettings(nextSettings)
-    setCards(pool)
-    setTotal(pool.length)
-    setLoading(false)
-    await emitAppEvent('kanjiwidget:quiz-session-started')
+    try {
+      await endSession()
+      if (generation !== loadGeneration.current) return
+      const nextSettings = providedSettings ?? await loadSettings()
+      const pool = shuffled(await buildQuizPool(nextSettings))
+      if (generation !== loadGeneration.current) return
+      activeDeck.current = nextSettings.deckId
+      sessionSettings.current = nextSettings
+      sessionActive.current = true
+      setSettings(nextSettings)
+      setCards(pool)
+      setTotal(pool.length)
+      setLoading(false)
+      await emitAppEvent('kanjiwidget:quiz-session-started')
+    } catch (reason) {
+      if (generation !== loadGeneration.current) return
+      setError(localizedError(sessionSettings.current.language, reason))
+      setLoading(false)
+    }
   }, [endSession])
 
   const syncSettings = useCallback(async () => {
-    const nextSettings = await loadSettings()
-    if (nextSettings.deckId !== activeDeck.current) await startSession(nextSettings)
-    else {
-      sessionSettings.current = nextSettings
-      setSettings(nextSettings)
+    try {
+      const nextSettings = await loadSettings()
+      if (nextSettings.deckId !== activeDeck.current) await startSession(nextSettings)
+      else {
+        sessionSettings.current = nextSettings
+        setSettings(nextSettings)
+      }
+    } catch (reason) {
+      setError(localizedError(sessionSettings.current.language, reason))
     }
   }, [startSession])
 
   const closeQuiz = useCallback(async () => {
-    await endSession()
-    await closeCurrentWindow()
+    ++loadGeneration.current
+    setLoading(true)
+    try {
+      await endSession()
+      await closeCurrentWindow()
+    } catch (reason) {
+      setError(localizedError(sessionSettings.current.language, reason))
+      setLoading(false)
+    }
   }, [endSession])
 
   useEffect(() => {
@@ -102,9 +133,10 @@ export function QuizScreen() {
     const cleanups = [
       listenAppEvent('kanjiwidget:quiz-opened', () => { void startSession() }),
       listenAppEvent('kanjiwidget:settings-changed', () => { void syncSettings() }),
+      listenAppEvent('kanjiwidget:quiz-close-requested', () => { void closeQuiz() }),
     ]
     return () => { void Promise.all(cleanups).then((items) => items.forEach((cleanup) => cleanup())) }
-  }, [startSession, syncSettings])
+  }, [startSession, syncSettings, closeQuiz])
 
   const current = cards[0]
   const completed = summary.length
@@ -116,30 +148,48 @@ export function QuizScreen() {
   const meaning = current ? (settings.language === 'ru' ? current.meaning_ru : current.meaning_en) : ''
 
   useEffect(() => {
+    let cancelled = false
     setRevealed(false)
     setIntervals({})
     if (current) {
-      void getOrCreateState(current.id).then((state) => setIntervals(previewIntervals(state, settings.requestRetention)))
+      void getOrCreateState(current.id).then((state) => {
+        if (!cancelled) setIntervals(previewIntervals(state, settings.requestRetention))
+      }).catch((reason: unknown) => {
+        if (!cancelled) setError(localizedError(settings.language, reason))
+      })
     }
-  }, [current, settings.requestRetention])
+    return () => { cancelled = true }
+  }, [current, settings.requestRetention, settings.language])
 
   const rate = useCallback(async (rating: 1 | 2 | 3 | 4) => {
-    if (!current || !revealed || ratingBusy.current) return
+    if (!current || !revealed || loading || ratingBusy.current) return
+    const generation = loadGeneration.current
     ratingBusy.current = true
-    try {
-      const nextState = await reviewCard(current.id, rating, settings)
+    setError('')
+    const write = reviewCard(current.id, rating, settings).then((nextState) => {
       reviewedCardIds.current.add(current.id)
+      return nextState
+    })
+    pendingReview.current = write
+    try {
+      const nextState = await write
+      if (generation !== loadGeneration.current) return
       if (cards.length === 1) await endSession()
+      if (generation !== loadGeneration.current) return
       setSummary((value) => [...value, { cardId: current.id, kanji: current.kanji, rating, due: nextState.due }])
       setCards((value) => value.slice(1))
+    } catch (reason) {
+      if (generation === loadGeneration.current) setError(localizedError(settings.language, reason))
     } finally {
+      if (pendingReview.current === write) pendingReview.current = null
       ratingBusy.current = false
     }
-  }, [cards.length, current, endSession, revealed, settings])
+  }, [cards.length, current, endSession, revealed, settings, loading])
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.target instanceof HTMLButtonElement || event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement) return
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement || event.target instanceof HTMLTextAreaElement) return
+      if (event.target instanceof HTMLButtonElement && (event.key === ' ' || event.key === 'Enter')) return
       if (!revealed && (event.key === ' ' || event.key === 'Enter')) {
         event.preventDefault()
         setRevealed(true)
@@ -156,11 +206,15 @@ export function QuizScreen() {
     return <main className={windowClass}><WindowChrome language={language} eyebrow="KANJIWIDGET" title={tr('Review', 'Повторение')} onClose={() => { void closeQuiz() }} /><div className="screen-loading"><span /></div></main>
   }
 
+  if (error) {
+    return <main className={windowClass}><WindowChrome language={language} eyebrow="KANJIWIDGET" title={tr('Review', 'Повторение')} onClose={() => { void closeQuiz() }} /><EmptyState icon={<RefreshCcw size={30} />} title={tr('Could not complete the review action', 'Не удалось выполнить действие')} text={error} action={<button type="button" className="primary-button" onClick={() => { void startSession() }}>{tr('Try again', 'Попробовать снова')}</button>} /></main>
+  }
+
   if (!total) {
     return (
       <main className={windowClass}>
         <WindowChrome language={language} eyebrow="KANJIWIDGET" title={tr('Review', 'Повторение')} onClose={() => { void closeQuiz() }} />
-        <EmptyState icon={<Trophy size={30} />} title={tr('The deck is empty', 'Колода пуста')} text={tr('The selected deck has no cards to review.', 'В выбранной колоде нет карточек для теста.')} action={<button type="button" className="primary-button" onClick={() => openAppWindow('settings')}>{tr('Open settings', 'Открыть настройки')}</button>} />
+        <EmptyState icon={<Trophy size={30} />} title={tr('No cards due right now', 'Сейчас нет карточек для повторения')} text={tr('Come back later, or choose another deck in settings.', 'Вернитесь позже или выберите другую колоду в настройках.')} action={<button type="button" className="primary-button" onClick={() => openAppWindow('settings')}>{tr('Open settings', 'Открыть настройки')}</button>} />
       </main>
     )
   }
@@ -199,7 +253,7 @@ export function QuizScreen() {
       <section className="quiz-stage flashcard-stage">
         <div className="quiz-heading"><span className="eyebrow">{current.jlpt ?? 'ANKI'} · {tr('CARD', 'КАРТОЧКА')}</span><h1>{tr('Recall the reading and meaning', 'Вспомните чтение и значение')}</h1></div>
         <article className={`review-card ${revealed ? 'revealed' : ''}`}>
-          <div className="review-kanji">{current.kanji}</div>
+          <FittedHeadword className="review-kanji" text={current.kanji} sizeKey={`${settings.fontSize}:${revealed}`} />
           {!revealed && (
             <div className="review-example review-example-front" lang="ja">
               {sentence ? withoutAnkiFurigana(sentence) : <span>{tr('No example in this deck', 'Пример в колоде не указан')}</span>}
@@ -212,6 +266,7 @@ export function QuizScreen() {
             <div className="review-answer">
               <div className="review-core-answer">
                 <span className="review-main-reading">{current.furigana}</span>
+                {settings.showRomaji && <span className="review-romaji" lang="en">{romanizeKana(current.furigana)}</span>}
                 <strong>{meaning}</strong>
                 {(current.onyomi.length > 0 || current.kunyomi.length > 0) && (
                   <div className="review-readings">

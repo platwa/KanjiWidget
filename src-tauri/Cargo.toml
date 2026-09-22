@@ -1,7 +1,7 @@
 [package]
 name = "kanji-widget"
 version = "1.5.0"
-description = "Minimal Japanese kanji desktop widget"
+description = "Japanese vocabulary and kanji desktop widget"
 authors = ["KanjiWidget"]
 license = "Apache-2.0"
 repository = "https://github.com/platwa/KanjiWidget"

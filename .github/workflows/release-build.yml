@@ -49,11 +49,17 @@ jobs:
 
       - name: Build Windows packages
         shell: pwsh
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
           if ("${{ inputs.microsoft_store }}" -eq "true") {
             pnpm tauri build --config src-tauri/tauri.microsoftstore.conf.json
-          } else {
+          } elseif ($env:TAURI_SIGNING_PRIVATE_KEY) {
             pnpm tauri build
+          } else {
+            Write-Warning "TAURI_SIGNING_PRIVATE_KEY is not configured; building the standard unsigned packages without updater artifacts."
+            pnpm tauri build --config '{"bundle":{"createUpdaterArtifacts":false}}'
           }
 
       - name: Stage release files

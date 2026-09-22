@@ -47,6 +47,28 @@ afterEach(() => {
 })
 
 describe('widget pool updates', () => {
+  it('shows optional rōmaji with the answer and hides it during active recall', async () => {
+    storageMocks.loadSettings.mockResolvedValue({ ...DEFAULT_SETTINGS, displayMode: 'active-recall', showRomaji: true })
+    storageMocks.buildDailyPool.mockResolvedValue([card])
+    storageMocks.buildQuizPool.mockResolvedValue([card])
+    const view = render(<WidgetView />)
+    const button = await view.findByRole('button', { name: 'Reveal answer' })
+    expect(view.container.querySelector('.romaji')).toHaveTextContent('')
+    expect(view.container.querySelector('.pronunciation')).toHaveAttribute('aria-hidden', 'true')
+    fireEvent.mouseEnter(button)
+    await waitFor(() => expect(view.container.querySelector('.pronunciation')).toHaveAttribute('aria-hidden', 'false'), { timeout: 600 })
+    expect(view.getByText('nichi')).toBeInTheDocument()
+  })
+
+  it('shows a load error and retries on card click', async () => {
+    storageMocks.loadSettings.mockRejectedValueOnce(new Error('Database unavailable')).mockResolvedValue(DEFAULT_SETTINGS)
+    storageMocks.buildDailyPool.mockResolvedValue([card])
+    const view = render(<WidgetView />)
+    fireEvent.click(await view.findByRole('alert'))
+    expect(await view.findByText('day')).toBeVisible()
+    expect(view.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
   it('uses only the frozen quiz pool while a test is active', async () => {
     storageMocks.loadSettings.mockResolvedValue(DEFAULT_SETTINGS)
     storageMocks.buildDailyPool.mockResolvedValue([card])
@@ -96,8 +118,8 @@ describe('widget pool updates', () => {
     openSpy.mockRestore()
   })
 
-  it('keeps the Japanese example visible and reveals answers after a deliberate hover', async () => {
-    storageMocks.loadSettings.mockResolvedValue({ ...DEFAULT_SETTINGS, displayMode: 'active-recall' })
+  it.each(['active-recall', 'quiz'] as const)('hides readings until hover in %s and conceals them after leaving', async (displayMode) => {
+    storageMocks.loadSettings.mockResolvedValue({ ...DEFAULT_SETTINGS, displayMode })
     storageMocks.buildDailyPool.mockResolvedValue([card])
     storageMocks.buildQuizPool.mockResolvedValue([card])
 
@@ -107,19 +129,23 @@ describe('widget pool updates', () => {
     const kanji = view.container.querySelector('.kanji-glyph')
     const exampleFurigana = sentence?.querySelector('rt')
 
-    expect(view.container.querySelector('.kanji-card-content')).toHaveClass('concealed-answers')
+    expect(view.container.querySelector('.kanji-card-content')).toHaveClass(displayMode === 'quiz' ? 'concealed-all' : 'concealed-answers')
     expect(sentence).toHaveAttribute('aria-label', '今日は日曜日です。')
+    expect(exampleFurigana).toHaveStyle({ visibility: 'hidden' })
+    expect(exampleFurigana).toHaveAttribute('aria-hidden', 'true')
     expect(view.getByText('Today is Sunday.')).toHaveAttribute('aria-hidden', 'true')
 
     fireEvent.mouseEnter(cardButton)
     await waitFor(() => expect(view.container.querySelector('.kanji-card-content')).toHaveClass('concealed-none'), { timeout: 600 })
     expect(view.getByText('Today is Sunday.')).toHaveAttribute('aria-hidden', 'false')
+    expect(exampleFurigana).not.toHaveStyle({ visibility: 'hidden' })
+    expect(exampleFurigana).toHaveAttribute('aria-hidden', 'false')
     expect(view.container.querySelector('.kanji-glyph')).toBe(kanji)
     expect(view.container.querySelector('.ruby-text')).toBe(sentence)
     expect(view.container.querySelector('.ruby-text rt')).toBe(exampleFurigana)
 
     fireEvent.mouseLeave(cardButton)
-    await waitFor(() => expect(view.container.querySelector('.kanji-card-content')).toHaveClass('concealed-answers'), { timeout: 500 })
+    await waitFor(() => expect(view.container.querySelector('.kanji-card-content')).toHaveClass(displayMode === 'quiz' ? 'concealed-all' : 'concealed-answers'), { timeout: 500 })
     expect(view.container.querySelector('.kanji-glyph')).toBe(kanji)
     expect(view.container.querySelector('.ruby-text')).toBe(sentence)
     expect(view.container.querySelector('.ruby-text rt')).toBe(exampleFurigana)

@@ -28,11 +28,11 @@ export function AnkiImportPanel({ language, onImported }: {
   }
 
   const chooseFile = async () => {
-    const selected = await pickAnkiPackage(language)
-    if (!selected) return
     setBusy(true)
     setError('')
     try {
+      const selected = await pickAnkiPackage(language)
+      if (!selected) return
       const inspected = await inspectAnkiPackage(selected)
       setPath(selected)
       setPreview(inspected)
@@ -74,7 +74,7 @@ export function AnkiImportPanel({ language, onImported }: {
       <div className="anki-import-card">
         <div className="anki-import-copy">
           <span className="anki-icon"><FileArchive size={20} /></span>
-          <span><strong>{tx(language, 'Import from Anki', 'Импорт из Anki')}</strong><small>{tx(language, 'Kanji, readings, meanings and examples from an .apkg file. Media files are not copied.', 'Кандзи, чтения, значения и примеры из файла .apkg. Медиафайлы не копируются.')}</small></span>
+          <span><strong>{tx(language, 'Import from Anki', 'Импорт из Anki')}</strong><small>{tx(language, 'Japanese words, kanji, readings, meanings and examples from an .apkg file. Each import creates a separate deck. Media files are not copied.', 'Японские слова, кандзи, чтения, значения и примеры из файла .apkg. Каждый импорт создаёт отдельную колоду. Медиафайлы не копируются.')}</small></span>
         </div>
         <button className="secondary-button" type="button" disabled={busy} onClick={chooseFile}>
           {busy ? <LoaderCircle size={16} className="spin" /> : <Upload size={16} />}{tx(language, 'Choose .apkg', 'Выбрать .apkg')}
@@ -89,7 +89,7 @@ export function AnkiImportPanel({ language, onImported }: {
     <div className="anki-mapping-card">
       <div className="anki-mapping-head">
         <div><span className="eyebrow">{preview.format}</span><strong>{path.split(/[\\/]/).pop()}</strong><small>{tx(language, `${preview.totalNotes} notes found`, `${preview.totalNotes} заметок найдено`)}</small></div>
-        <button type="button" onClick={reset} aria-label={tx(language, 'Cancel import', 'Отменить импорт')}><X size={17} /></button>
+        <button type="button" disabled={busy} onClick={reset} aria-label={tx(language, 'Cancel import', 'Отменить импорт')}><X size={17} /></button>
       </div>
       <div className="anki-field-grid">
         <label><span>{tx(language, 'Deck name', 'Название колоды')}</span><input value={deckName} maxLength={80} onChange={(event) => setDeckName(event.target.value)} /></label>

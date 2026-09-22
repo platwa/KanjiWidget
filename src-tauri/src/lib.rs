@@ -9,6 +9,15 @@ use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 use tauri_plugin_sql::{Migration, MigrationKind};
 
 mod anki;
+mod storage;
+
+#[tauri::command]
+fn close_review_window(app: AppHandle) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("quiz") {
+        window.destroy().map_err(|error| error.to_string())?;
+    }
+    Ok(())
+}
 
 const TRAY_ID: &str = "kanjiwidget-tray";
 
@@ -339,7 +348,10 @@ pub fn run() {
             set_native_language,
             show_card_editor,
             anki::inspect_anki_package,
-            anki::import_anki_cards
+            anki::import_anki_cards,
+            storage::save_review,
+            storage::clear_deck_progress,
+            close_review_window
         ])
         .setup(|app| {
             #[cfg(desktop)]
@@ -388,7 +400,9 @@ pub fn run() {
             }
             tray.build(app)?;
 
-            app.global_shortcut().register("Ctrl+Shift+J")?;
+            if let Err(error) = app.global_shortcut().register("Ctrl+Shift+J") {
+                eprintln!("Could not register Ctrl+Shift+J: {error}");
+            }
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -397,7 +411,8 @@ pub fn run() {
                     api.prevent_close();
                     let _ = window.hide();
                 } else if window.label() == "quiz" {
-                    let _ = window.emit("kanjiwidget:quiz-session-ended", ());
+                    api.prevent_close();
+                    let _ = window.emit("kanjiwidget:quiz-close-requested", ());
                 }
             }
         })

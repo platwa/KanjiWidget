@@ -1,4 +1,4 @@
-import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react'
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ChevronLeft, ChevronRight, EyeOff, Layers3, LoaderCircle, Pencil, Plus,
   RotateCcw, Save, Search, Trash2, X,
@@ -69,10 +69,10 @@ function cardFromDraft(draft: CardDraft, original?: Card, language: Language = '
   const sentence = draft.example.trim()
   const originalExample = original?.examples[0]
   const editedExample = sentence ? {
-    word: headword,
-    reading,
-    meaning_ru: meaningRu,
-    meaning_en: meaningEn,
+    word: originalExample?.word ?? headword,
+    reading: originalExample?.reading ?? reading,
+    meaning_ru: originalExample?.meaning_ru ?? meaningRu,
+    meaning_en: originalExample?.meaning_en ?? meaningEn,
     sentence,
     sentence_reading: draft.exampleReading.trim(),
     sentence_ru: language === 'ru' ? draft.exampleTranslation.trim() : originalExample?.sentence_ru || '',
@@ -91,7 +91,9 @@ function cardFromDraft(draft: CardDraft, original?: Card, language: Language = '
     grade: original?.grade ?? null,
     strokes: original?.strokes ?? null,
     tags: splitList(draft.tags),
-    examples: editedExample ? [editedExample, ...(original?.examples.slice(1) ?? [])] : [],
+    examples: editedExample
+      ? [editedExample, ...(originalExample?.sentence ? original?.examples.slice(1) ?? [] : original?.examples ?? [])]
+      : originalExample?.sentence ? original?.examples.slice(1) ?? [] : original?.examples ?? [],
   }
 }
 
@@ -121,6 +123,7 @@ export function CardManager({ deck, settings, initialCardId, startWithNew = fals
   const [page, setPage] = useState(0)
   const [loading, setLoading] = useState(true)
   const [editor, setEditor] = useState<ManagedCard | 'new' | null>(startWithNew ? 'new' : null)
+  const openedRequest = useRef('')
 
   const refresh = useCallback(async () => {
     const [nextEntries, nextPoolIds] = await Promise.all([
@@ -135,12 +138,13 @@ export function CardManager({ deck, settings, initialCardId, startWithNew = fals
 
   useEffect(() => {
     void refresh().then((nextEntries) => {
-      if (initialCardId) {
+      const request = `${deck.id}:${initialCardId ?? ''}`
+      if (initialCardId && openedRequest.current !== request) {
         const requested = nextEntries.find((entry) => entry.card.id === initialCardId)
-        if (requested) setEditor(requested)
+        if (requested) { setEditor(requested); openedRequest.current = request }
       }
     })
-  }, [initialCardId, refresh])
+  }, [deck.id, initialCardId, refresh])
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -192,6 +196,7 @@ export function CardManager({ deck, settings, initialCardId, startWithNew = fals
 
   const restoreCard = async (entry: ManagedCard) => {
     await restoreOriginalCard(deck.id, entry.card.id, settings)
+    setEditor(null)
     await changed(tr('Original card restored and added to the pool', 'Оригинальная карточка восстановлена и добавлена в пул'))
   }
 

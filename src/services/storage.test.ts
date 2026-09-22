@@ -4,10 +4,30 @@ import {
   addCardToDeck, buildDailyPool, buildQuizPool, deleteCardFromDeck, deleteCustomDeck,
   finishQuizSession, getAllCards, getCardsForDeck, getCurrentPoolCardIds, getDecks,
   getManagedCardsForDeck, loadSettings, restoreOriginalCard, reviewCard, saveImportedDeck,
-  saveSettings, updateCardInDeck,
+  resetDeckProgress, saveSettings, updateCardInDeck,
 } from './storage'
 
 describe('local data and daily pool', () => {
+  it('preserves the original deck and progress when importing the same name again', async () => {
+    const input = [{ sourceId: 'same', headword: '日本', reading: 'にほん', meaning: 'Japan', sentence: '', sentenceReading: '', sentenceMeaning: '' }]
+    const first = await saveImportedDeck('Vocabulary', input)
+    const original = (await getCardsForDeck(first.deck.id))[0]
+    await updateCardInDeck(first.deck.id, { ...original, meaning_en: 'My translation' })
+    await reviewCard(original.id, 4, { ...DEFAULT_SETTINGS, deckId: first.deck.id })
+    const second = await saveImportedDeck(' Vocabulary ', [{ ...input[0], headword: '見える' }])
+    expect(second.deck.id).not.toBe(first.deck.id)
+    expect(second.deck.name).toBe('Vocabulary (2)')
+    expect((await getCardsForDeck(first.deck.id))[0].meaning_en).toBe('My translation')
+    expect(JSON.parse(localStorage.getItem('kanjiwidget:states')!)[original.id].reps).toBe(1)
+    expect((await getCardsForDeck(second.deck.id))[0].kanji).toBe('見える')
+    const third = await saveImportedDeck('Vocabulary', input)
+    expect(third.deck.name).toBe('Vocabulary (3)')
+  })
+
+  it('does not substitute built-in cards for a deleted or unknown deck', async () => {
+    expect(await getCardsForDeck('deleted-deck')).toEqual([])
+    expect(await buildDailyPool({ ...DEFAULT_SETTINGS, deckId: 'deleted-deck' })).toEqual([])
+  })
   it('contains complete N5 and N4 decks with Russian meanings', async () => {
     expect(await getCardsForDeck('jlpt-n5')).toHaveLength(80)
     expect(await getCardsForDeck('jlpt-n4')).toHaveLength(170)
@@ -30,6 +50,17 @@ describe('local data and daily pool', () => {
     expect(settings.poolSize).toBe(7)
     expect(settings.language).toBe('en')
     expect(settings.questionTypes.length).toBeGreaterThan(0)
+  })
+
+  it('resets only the selected deck pool in local storage', async () => {
+    localStorage.setItem('kanjiwidget:pools', JSON.stringify({
+      'jlpt-n5:2026-09-22': { date: '2026-09-22', deckId: 'jlpt-n5', cardIds: ['n5'] },
+      'jlpt-n4:2026-09-22': { date: '2026-09-22', deckId: 'jlpt-n4', cardIds: ['n4'] },
+    }))
+    await resetDeckProgress('jlpt-n5')
+    const pools = JSON.parse(localStorage.getItem('kanjiwidget:pools') ?? '{}')
+    expect(pools['jlpt-n5:2026-09-22']).toBeUndefined()
+    expect(pools['jlpt-n4:2026-09-22']?.cardIds).toEqual(['n4'])
   })
 
   it('builds a stable pool and removes a rated card until it is due', async () => {

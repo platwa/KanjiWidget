@@ -43,6 +43,7 @@ export function localizedError(language: Language, reason: unknown) {
     [/В колоде нет заметок с доступными полями/i, 'The deck has no notes with readable fields'],
     [/Выберите поле с кандзи или японским словом/i, 'Choose the field containing a kanji or Japanese word'],
     [/Некорректный тип заметок Anki/i, 'Invalid Anki note type'],
+    [/По выбранному сопоставлению не найдено карточек с японским текстом/i, 'No cards with Japanese text matched the selected fields'],
     [/По выбранному сопоставлению не найдено карточек с кандзи/i, 'No kanji cards matched the selected fields'],
     [/Карточка с таким словом и чтением уже есть в колоде/i, 'A card with this word and reading already exists in the deck'],
     [/Оригинал карточки не найден/i, 'The original card could not be found'],

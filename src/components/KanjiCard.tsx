@@ -1,5 +1,7 @@
 import type { AppSettings, Card } from '../domain/types'
 import { RubyText } from './RubyText'
+import { FittedHeadword } from './FittedHeadword'
+import { romanizeKana } from '../services/romanize'
 
 type Concealment = 'none' | 'all' | 'answers'
 
@@ -18,16 +20,19 @@ export function KanjiCard({ card, settings, concealment = 'none', compact = fals
     : ''
   return (
     <div className={`kanji-card-content concealed-${concealment} ${compact ? 'compact' : ''}`}>
-      <div className="furigana" aria-hidden={answersHidden}>{!answersHidden && settings.showFurigana ? card.furigana : '\u00a0'}</div>
-      <div className="kanji-glyph">{card.kanji}</div>
+      <div className="pronunciation" aria-hidden={answersHidden}>
+        <div className="furigana">{!answersHidden && settings.showFurigana ? card.furigana : '\u00a0'}</div>
+        {settings.showRomaji && <div className="romaji" lang="en">{!answersHidden ? romanizeKana(card.furigana) : '\u00a0'}</div>}
+      </div>
+      <FittedHeadword className="kanji-glyph" text={card.kanji} sizeKey={`${settings.fontSize}:${concealment}`} />
       <div className="reading-stack" aria-hidden={answersHidden}>
-        {settings.showOnyomi && <div className="reading onyomi"><span>音</span>{card.onyomi.join('、') || '—'}</div>}
-        {settings.showKunyomi && <div className="reading kunyomi"><span>訓</span>{card.kunyomi.join('、') || '—'}</div>}
+        {settings.showOnyomi && card.onyomi.length > 0 && <div className="reading onyomi"><span>音</span>{card.onyomi.join('、')}</div>}
+        {settings.showKunyomi && card.kunyomi.length > 0 && <div className="reading kunyomi"><span>訓</span>{card.kunyomi.join('、')}</div>}
       </div>
       <div className="meaning" aria-hidden={answersHidden}>{meaning}</div>
       {example?.sentence && (
         <div className="usage-example" aria-hidden={exampleHidden}>
-          <div className="usage-sentence"><RubyText text={example.sentence} segments={example.ruby} fallbackReading={example.sentence_reading} target={card.kanji} /></div>
+          <div className="usage-sentence"><RubyText text={example.sentence} segments={example.ruby} fallbackReading={example.sentence_reading} target={card.kanji} showReadings={!answersHidden} /></div>
           {exampleTranslation && <div className="usage-translation" aria-hidden={answersHidden}>{exampleTranslation}</div>}
         </div>
       )}

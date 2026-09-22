@@ -29,8 +29,8 @@ function setLanguage(language) {
   });
 
   document.title = lang === "ru"
-    ? "Бесплатный виджет для изучения кандзи | KanjiWidget"
-    : "Free Kanji Desktop Widget for Windows | KanjiWidget";
+    ? "Японские слова и кандзи на рабочем столе Windows | KanjiWidget"
+    : "Japanese Vocabulary & Kanji Widget for Windows | KanjiWidget";
 }
 
 document.getElementById("language-toggle").addEventListener("click", () => {

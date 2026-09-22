@@ -4,17 +4,19 @@ This file keeps the public positioning and ready-to-publish launch copy consiste
 
 ## Positioning
 
-**English one-liner:** Learn kanji in the background — a calm, free, offline widget for Windows.
+**English one-liner:** Japanese, always in the background — words and kanji with readings and examples on your Windows desktop.
 
-**Русская формулировка:** Кандзи всегда перед глазами — бесплатный офлайн-виджет для Windows.
+**Русская формулировка:** Японский всегда на фоне — слова и кандзи с чтением, переводом и примерами на рабочем столе Windows.
+
+**Positioning rule:** Lead with Japanese vocabulary in context. Whole-word cards such as 見える are a core use case. N5/N4 describe the included kanji decks, not the limits of the app or its audience. Custom and imported vocabulary can come from other levels. Say “reading” rather than “audio pronunciation”: audio is not imported. Older channel drafts below need this framing applied before publication.
 
 KanjiWidget is a desktop companion, not a claim to replace every Anki workflow. The strongest differentiators are passive desktop exposure, focused FSRS reviews, local data, `.apkg` import, and a calm native-looking interface.
 
 ## Links
 
 - Repository: https://github.com/platwa/KanjiWidget
-- Release: https://github.com/platwa/KanjiWidget/releases/tag/v1.4.1
-- Recommended installer: https://github.com/platwa/KanjiWidget/releases/download/v1.4.1/KanjiWidget-1.4.1-x64-Setup.exe
+- Release: https://github.com/platwa/KanjiWidget/releases/tag/v1.5.0
+- Recommended installer: https://github.com/platwa/KanjiWidget/releases/download/v1.5.0/KanjiWidget-1.5.0-x64-Setup.exe
 - Issues: https://github.com/platwa/KanjiWidget/issues
 - Support: support.kanjiwidget@gmail.com
 - Tribute: https://web.tribute.tg/d/PHT

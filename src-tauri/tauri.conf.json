@@ -52,8 +52,8 @@
     "publisher": "KanjiWidget",
     "copyright": "© 2026 KanjiWidget",
     "category": "Education",
-    "shortDescription": "A minimal desktop widget for learning Japanese kanji",
-    "longDescription": "An offline kanji widget with FSRS spaced repetition, reviews, editable decks and Anki import.",
+    "shortDescription": "Japanese vocabulary and kanji on your Windows desktop",
+    "longDescription": "An offline Japanese vocabulary and kanji widget with readings, examples, FSRS reviews, editable decks and Anki import.",
     "resources": {
       "../LICENSE": "LICENSE",
       "../NOTICE": "NOTICE",

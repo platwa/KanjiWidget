@@ -1,6 +1,7 @@
 import type {
   AnkiFieldMapping, AnkiPackagePreview, AppSettings, Card, ImportedAnkiCard,
 } from '../domain/types'
+import { romanizeKana } from './romanize'
 
 type WidgetWindow = Pick<import('@tauri-apps/api/window').Window, 'setPosition'>
 
@@ -52,6 +53,10 @@ export async function closeCurrentWindow() {
   const { getCurrentWindow } = await import('@tauri-apps/api/window')
   const current = getCurrentWindow()
   if (current.label === 'main') await current.hide()
+  else if (current.label === 'quiz') {
+    const { invoke } = await import('@tauri-apps/api/core')
+    await invoke('close_review_window')
+  }
   else await current.close()
 }
 
@@ -202,6 +207,23 @@ export async function pickLockscreenFolder(language: AppSettings['language'] = '
   return typeof selection === 'string' ? selection : null
 }
 
+export function lockscreenFileName(cardId: string) {
+  let hash = 0x811c9dc5
+  for (let index = 0; index < cardId.length; index += 1) {
+    hash = Math.imul(hash ^ cardId.charCodeAt(index), 0x01000193)
+  }
+  return `kanjiwidget-${(hash >>> 0).toString(16).padStart(8, '0')}.png`
+}
+
+function fitCanvasText(context: CanvasRenderingContext2D, text: string, family: string, maxSize: number, maxWidth: number) {
+  let size = maxSize
+  context.font = `${size}px ${family}`
+  while (size > 72 && context.measureText(text).width > maxWidth) {
+    size -= 8
+    context.font = `${size}px ${family}`
+  }
+}
+
 export async function exportLockscreenCard(card: Card, settings: AppSettings) {
   if (!isTauri() || !settings.lockscreenExport || !settings.lockscreenFolder) return
   const { invoke } = await import('@tauri-apps/api/core')
@@ -231,8 +253,13 @@ export async function exportLockscreenCard(card: Card, settings: AppSettings) {
   context.fillStyle = 'rgba(255,255,255,.54)'
   context.font = '32px "Noto Sans JP", sans-serif'
   context.fillText(settings.showFurigana ? card.furigana : '', 960, 300)
+  if (settings.showRomaji) {
+    context.fillStyle = 'rgba(255,255,255,.38)'
+    context.font = '22px "Noto Sans JP", sans-serif'
+    context.fillText(romanizeKana(card.furigana), 960, 342)
+  }
   context.fillStyle = '#f7f2e8'
-  context.font = '360px "Noto Serif JP", serif'
+  fitCanvasText(context, card.kanji, '"Noto Serif JP", serif', 360, 1600)
   context.fillText(card.kanji, 960, 660)
   context.fillStyle = '#cbc8d2'
   context.font = '42px "Noto Sans JP", sans-serif'
@@ -245,7 +272,7 @@ export async function exportLockscreenCard(card: Card, settings: AppSettings) {
   const bytes = Array.from(Uint8Array.from(atob(dataUrl.split(',')[1]), (value) => value.charCodeAt(0)))
   await invoke('write_lockscreen_png', {
     folder: settings.lockscreenFolder,
-    fileName: `kanjiwidget-${card.kanji.codePointAt(0)?.toString(16)}.png`,
+    fileName: lockscreenFileName(card.id),
     bytes,
   })
 }

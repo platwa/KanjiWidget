@@ -11,6 +11,14 @@ use sqlx::{Connection, Row};
 use tempfile::NamedTempFile;
 use zip::ZipArchive;
 
+// Compile each fixed pattern once, rather than once per field of every note.
+macro_rules! cached_regex {
+    ($pattern:literal) => {{
+        static REGEX: std::sync::OnceLock<Regex> = std::sync::OnceLock::new();
+        REGEX.get_or_init(|| Regex::new($pattern).expect("valid import regex"))
+    }};
+}
+
 const MAX_COLLECTION_BYTES: u64 = 256 * 1024 * 1024;
 const MAX_FIELD_BYTES: usize = 256 * 1024;
 
@@ -451,31 +459,27 @@ pub async fn inspect_anki_package(path: String) -> Result<AnkiPackagePreview, St
 }
 
 fn strip_tags(value: &str) -> String {
-    let tags = Regex::new(r"(?is)<[^>]*>").expect("valid tag regex");
+    let tags = cached_regex!(r"(?is)<[^>]*>");
     tags.replace_all(value, "").into_owned()
 }
 
 fn normalize_anki_field(value: &str) -> String {
     let mut value: String = value.chars().take(MAX_FIELD_BYTES).collect();
-    let ruby = Regex::new(r"(?is)<ruby[^>]*>(.*?)<rt[^>]*>(.*?)</rt>.*?</ruby>")
-        .expect("valid ruby regex");
+    let ruby = cached_regex!(r"(?is)<ruby[^>]*>(.*?)<rt[^>]*>(.*?)</rt>.*?</ruby>");
     value = ruby
         .replace_all(&value, |captures: &Captures<'_>| {
             format!("{}[{}]", strip_tags(&captures[1]), strip_tags(&captures[2]))
         })
         .into_owned();
-    let cloze = Regex::new(r"(?is)\{\{c\d+::(.*?)(?:::[^}]*)?\}\}").expect("valid cloze regex");
+    let cloze = cached_regex!(r"(?is)\{\{c\d+::(.*?)(?:::[^}]*)?\}\}");
     value = cloze.replace_all(&value, "$1").into_owned();
-    value = Regex::new(r"(?is)<(?:img|audio|video)\b[^>]*>")
-        .expect("valid media regex")
+    value = cached_regex!(r"(?is)<(?:img|audio|video)\b[^>]*>")
         .replace_all(&value, "")
         .into_owned();
-    value = Regex::new(r"(?is)\[sound:[^]]+\]")
-        .expect("valid sound regex")
+    value = cached_regex!(r"(?is)\[sound:[^]]+\]")
         .replace_all(&value, "")
         .into_owned();
-    value = Regex::new(r"(?is)<br\s*/?>|</(?:div|p|li)\s*>")
-        .expect("valid break regex")
+    value = cached_regex!(r"(?is)<br\s*/?>|</(?:div|p|li)\s*>")
         .replace_all(&value, "\n")
         .into_owned();
     let value = strip_tags(&value);
@@ -507,9 +511,7 @@ fn extract_headword(value: &str) -> String {
         .lines()
         .find(|line| !line.trim().is_empty())
         .unwrap_or("");
-    let without_reading = Regex::new(r"\s*\[[^]]+\]")
-        .expect("valid reading regex")
-        .replace_all(first_line, "");
+    let without_reading = cached_regex!(r"\s*\[[^]]+\]").replace_all(first_line, "");
     without_reading
         .trim_matches(|character: char| {
             character.is_whitespace() || "「」『』【】()（）".contains(character)
@@ -518,18 +520,31 @@ fn extract_headword(value: &str) -> String {
 }
 
 fn extract_bracket_reading(value: &str) -> String {
-    Regex::new(r"\[([^]]+)\]")
-        .expect("valid reading regex")
-        .captures(value)
-        .and_then(|captures| captures.get(1))
-        .map(|value| value.as_str().trim().to_string())
-        .unwrap_or_default()
+    let normalized = normalize_anki_field(value);
+    let first_line = normalized.lines().next().unwrap_or("");
+    let annotated = cached_regex!(r"[々〇〻㐀-鿿豈-﫿]+\[([^]]+)\]");
+    if !annotated.is_match(first_line) {
+        return String::new();
+    }
+    annotated
+        .replace_all(first_line, "$1")
+        .split_whitespace()
+        .collect()
 }
 
-fn contains_kanji(value: &str) -> bool {
-    value.chars().any(
-        |character| matches!(character as u32, 0x3400..=0x4dbf | 0x4e00..=0x9fff | 0xf900..=0xfaff),
-    )
+fn contains_japanese_text(value: &str) -> bool {
+    value.chars().any(|character| {
+        matches!(
+            character as u32,
+            0x3040..=0x309f // Hiragana
+                | 0x30a0..=0x30ff // Katakana
+                | 0x31f0..=0x31ff // Katakana phonetic extensions
+                | 0x3400..=0x4dbf // CJK extension A
+                | 0x4e00..=0x9fff // CJK unified ideographs
+                | 0xf900..=0xfaff // CJK compatibility ideographs
+                | 0xff66..=0xff9f // Half-width katakana
+        )
+    })
 }
 
 #[tauri::command]
@@ -559,7 +574,10 @@ pub async fn import_anki_cards(
         let fields: Vec<&str> = raw_fields.split('\u{1f}').collect();
         let headword_source = field(&fields, mapping.headword_field);
         let headword = extract_headword(headword_source);
-        if headword.is_empty() || headword.chars().count() > 24 || !contains_kanji(&headword) {
+        if headword.is_empty()
+            || headword.chars().count() > 24
+            || !contains_japanese_text(&headword)
+        {
             continue;
         }
         let reading = {
@@ -567,7 +585,12 @@ pub async fn import_anki_cards(
             if explicit.is_empty() {
                 extract_bracket_reading(headword_source)
             } else {
-                explicit
+                let annotated = extract_bracket_reading(&explicit);
+                if annotated.is_empty() {
+                    explicit
+                } else {
+                    annotated
+                }
             }
         };
         cards.push(ImportedAnkiCard {
@@ -581,7 +604,7 @@ pub async fn import_anki_cards(
         });
     }
     if cards.is_empty() {
-        return Err("По выбранному сопоставлению не найдено карточек с кандзи".into());
+        return Err("По выбранному сопоставлению не найдено карточек с японским текстом".into());
     }
     Ok(cards)
 }
@@ -618,14 +641,32 @@ mod tests {
     }
 
     #[test]
-    fn extracts_headword_and_requires_kanji() {
+    fn extracts_headword_and_recognizes_japanese_writing() {
         assert_eq!(extract_headword("<b>日本[にほん]</b>"), "日本");
-        assert!(contains_kanji("日本語"));
-        assert!(!contains_kanji("ひらがな"));
+        assert!(contains_japanese_text("日本語"));
+        assert!(contains_japanese_text("ありがとう"));
+        assert!(contains_japanese_text("カタカナ"));
+        assert!(!contains_japanese_text("English only"));
     }
 
     #[test]
-    fn reads_a_legacy_apkg_without_extracting_media() {
+    fn preserves_kana_endings_and_multiple_readings() {
+        assert_eq!(extract_bracket_reading("見[み]える"), "みえる");
+        assert_eq!(extract_bracket_reading("お茶[ちゃ]"), "おちゃ");
+        assert_eq!(
+            extract_bracket_reading("取[と]り 扱[あつか]う"),
+            "とりあつかう"
+        );
+        assert_eq!(
+            extract_bracket_reading("<ruby>見<rt>み</rt></ruby>える"),
+            "みえる"
+        );
+        assert_eq!(extract_bracket_reading("ありがとう"), "");
+        assert_eq!(extract_bracket_reading("日本[sound:audio.mp3]"), "");
+    }
+
+    #[test]
+    fn reads_legacy_and_compressed_apkg_without_extracting_media() {
         tauri::async_runtime::block_on(async {
             let database = NamedTempFile::new().unwrap();
             let options = SqliteConnectOptions::new()
@@ -660,32 +701,62 @@ mod tests {
                 .execute("INSERT INTO cards (nid, did) VALUES (1, 2)")
                 .await
                 .unwrap();
+            for (id, fields) in [
+                (2, "ありがとう\u{1f}ありがとう\u{1f}спасибо\u{1f}\u{1f}"),
+                (3, "見[み]える\u{1f}\u{1f}быть видимым\u{1f}\u{1f}"),
+                (4, "English\u{1f}\u{1f}английский\u{1f}\u{1f}"),
+            ] {
+                sqlx::query("INSERT INTO notes (id, guid, mid, flds) VALUES (?, ?, 1, ?)")
+                    .bind(id)
+                    .bind(format!("note-{id}"))
+                    .bind(fields)
+                    .execute(&mut connection)
+                    .await
+                    .unwrap();
+            }
             connection.close().await.unwrap();
 
-            let package = tempfile::Builder::new().suffix(".apkg").tempfile().unwrap();
-            let writer = package.reopen().unwrap();
-            let mut archive = zip::ZipWriter::new(writer);
-            archive
-                .start_file("collection.anki21", SimpleFileOptions::default())
-                .unwrap();
-            archive
-                .write_all(&std::fs::read(database.path()).unwrap())
-                .unwrap();
-            archive
-                .start_file("0", SimpleFileOptions::default())
-                .unwrap();
-            archive.write_all(b"ignored image bytes").unwrap();
-            archive.finish().unwrap();
+            for compressed in [false, true] {
+                let package = tempfile::Builder::new().suffix(".apkg").tempfile().unwrap();
+                let writer = package.reopen().unwrap();
+                let mut archive = zip::ZipWriter::new(writer);
+                archive
+                    .start_file(
+                        if compressed {
+                            "collection.anki21b"
+                        } else {
+                            "collection.anki21"
+                        },
+                        SimpleFileOptions::default(),
+                    )
+                    .unwrap();
+                let bytes = std::fs::read(database.path()).unwrap();
+                let bytes = if compressed {
+                    zstd::stream::encode_all(bytes.as_slice(), 1).unwrap()
+                } else {
+                    bytes
+                };
+                archive.write_all(&bytes).unwrap();
+                archive
+                    .start_file("0", SimpleFileOptions::default())
+                    .unwrap();
+                archive.write_all(b"ignored image bytes").unwrap();
+                archive.finish().unwrap();
 
-            let path = package.path().to_string_lossy().into_owned();
-            let preview = inspect_anki_package(path.clone()).await.unwrap();
-            assert_eq!(preview.deck_name, "Test deck");
-            assert_eq!(preview.total_notes, 1);
-            let mapping = preview.note_types.into_iter().next().unwrap().suggested;
-            let cards = import_anki_cards(path, mapping).await.unwrap();
-            assert_eq!(cards.len(), 1);
-            assert_eq!(cards[0].headword, "日本");
-            assert_eq!(cards[0].sentence, "日本[にほん]へ行きます。");
+                let path = package.path().to_string_lossy().into_owned();
+                let preview = inspect_anki_package(path.clone()).await.unwrap();
+                assert_eq!(preview.deck_name, "Test deck");
+                assert_eq!(preview.total_notes, 4);
+                let mapping = preview.note_types.into_iter().next().unwrap().suggested;
+                let cards = import_anki_cards(path, mapping).await.unwrap();
+                assert_eq!(cards.len(), 3);
+                assert_eq!(cards[0].headword, "日本");
+                assert_eq!(cards[0].sentence, "日本[にほん]へ行きます。");
+                assert_eq!(cards[1].headword, "ありがとう");
+                assert_eq!(cards[1].meaning, "спасибо");
+                assert_eq!(cards[2].headword, "見える");
+                assert_eq!(cards[2].reading, "みえる");
+            }
         });
     }
 }

@@ -27,6 +27,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   showOnyomi: true,
   showKunyomi: true,
   showFurigana: true,
+  showRomaji: false,
   language: 'en',
   theme: 'dark',
   opacity: 0.92,

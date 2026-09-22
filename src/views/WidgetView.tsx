@@ -4,7 +4,7 @@ import { KanjiCard } from '../components/KanjiCard'
 import { UPDATE_CHECK_INTERVAL_MS, UPDATE_CHECK_KEY } from '../config'
 import { DEFAULT_SETTINGS } from '../domain/defaults'
 import type { AppSettings, Card } from '../domain/types'
-import { applyDocumentLanguage, tx } from '../i18n'
+import { applyDocumentLanguage, localizedError, tx } from '../i18n'
 import {
   applyWidgetWindowSettings,
   beginWidgetDrag,
@@ -38,6 +38,8 @@ export function WidgetView() {
   const [paused, setPaused] = useState(false)
   const [contextOpen, setContextOpen] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const refreshGeneration = useRef(0)
   const wheelLocked = useRef(false)
   const quizActive = useRef(false)
   const revealTimer = useRef<number | null>(null)
@@ -48,23 +50,32 @@ export function WidgetView() {
   useEffect(() => { applyDocumentLanguage(language) }, [language])
 
   const refresh = useCallback(async () => {
-    const nextSettings = await loadSettings()
-    const pool = quizActive.current ? await buildQuizPool(nextSettings) : await buildDailyPool(nextSettings)
-    setSettings(nextSettings)
-    setCards((current) => {
-      const nextCards = new Map(pool.map((card) => [card.id, card]))
-      const sameMembership = current.length === pool.length && current.every((card) => nextCards.has(card.id))
-      if (!sameMembership) return shuffle(pool)
-      const ordered = current.map((card) => nextCards.get(card.id)!)
-      const contentChanged = current.some((card, cardIndex) => JSON.stringify(card) !== JSON.stringify(ordered[cardIndex]))
-      return contentChanged ? ordered : current
-    })
-    setIndex((current) => pool.length ? Math.min(current, pool.length - 1) : 0)
-    setLoading(false)
-    await Promise.all([
-      applyWidgetWindowSettings(nextSettings),
-      setNativeLanguage(nextSettings.language),
-    ])
+    const generation = ++refreshGeneration.current
+    try {
+      const nextSettings = await loadSettings()
+      const pool = quizActive.current ? await buildQuizPool(nextSettings) : await buildDailyPool(nextSettings)
+      if (generation !== refreshGeneration.current) return
+      setError('')
+      setSettings(nextSettings)
+      setCards((current) => {
+        const nextCards = new Map(pool.map((card) => [card.id, card]))
+        const sameMembership = current.length === pool.length && current.every((card) => nextCards.has(card.id))
+        if (!sameMembership) return shuffle(pool)
+        const ordered = current.map((card) => nextCards.get(card.id)!)
+        const contentChanged = current.some((card, cardIndex) => JSON.stringify(card) !== JSON.stringify(ordered[cardIndex]))
+        return contentChanged ? ordered : current
+      })
+      setIndex((current) => pool.length ? Math.min(current, pool.length - 1) : 0)
+      setLoading(false)
+      await Promise.all([
+        applyWidgetWindowSettings(nextSettings),
+        setNativeLanguage(nextSettings.language),
+      ])
+    } catch (reason) {
+      if (generation !== refreshGeneration.current) return
+      setError(reason instanceof Error ? reason.message : String(reason))
+      setLoading(false)
+    }
   }, [])
 
   useEffect(() => {
@@ -119,6 +130,7 @@ export function WidgetView() {
     concealTimer.current = null
   }, [])
   const next = useCallback(() => {
+    clearRecallTimers()
     if (!cards.length) return
     setIndex((value) => {
       if (value + 1 >= cards.length) {
@@ -135,13 +147,14 @@ export function WidgetView() {
     })
     setRevealed(false)
     setContextOpen(false)
-  }, [cards.length])
+  }, [cards.length, clearRecallTimers])
   const previous = useCallback(() => {
+    clearRecallTimers()
     if (!cards.length) return
     setIndex((value) => (value - 1 + cards.length) % cards.length)
     setRevealed(false)
     setContextOpen(false)
-  }, [cards.length])
+  }, [cards.length, clearRecallTimers])
 
   useEffect(() => {
     const cleanup = listenAppEvent('kanjiwidget:next-card', next)
@@ -151,7 +164,7 @@ export function WidgetView() {
   useLayoutEffect(() => {
     clearRecallTimers()
     setRevealed(false)
-  }, [clearRecallTimers, settings.displayMode])
+  }, [clearRecallTimers, settings.displayMode, currentCard?.id])
 
   useEffect(() => clearRecallTimers, [clearRecallTimers])
 
@@ -186,10 +199,10 @@ export function WidgetView() {
   const rootStyle = useMemo(() => ({ '--widget-opacity': settings.opacity } as React.CSSProperties), [settings.opacity])
 
   const revealRecallAnswer = () => {
-    if (settings.displayMode !== 'active-recall' || revealed) return
+    if (settings.displayMode === 'full') return
     if (concealTimer.current !== null) window.clearTimeout(concealTimer.current)
     concealTimer.current = null
-    if (revealTimer.current !== null) return
+    if (revealed || revealTimer.current !== null) return
     revealTimer.current = window.setTimeout(() => {
       revealTimer.current = null
       setRevealed(true)
@@ -197,7 +210,7 @@ export function WidgetView() {
   }
 
   const concealRecallAnswer = () => {
-    if (settings.displayMode !== 'active-recall') return
+    if (settings.displayMode === 'full') return
     if (revealTimer.current !== null) window.clearTimeout(revealTimer.current)
     revealTimer.current = null
     if (!revealed || concealTimer.current !== null) return
@@ -208,6 +221,7 @@ export function WidgetView() {
   }
 
   const handleCardClick = (event: React.MouseEvent) => {
+    if (error) { void refresh(); return }
     if (contextOpen) return setContextOpen(false)
     if (event.ctrlKey) return previous()
     if (settings.displayMode !== 'full' && !revealed) return setRevealed(true)
@@ -256,28 +270,31 @@ export function WidgetView() {
         type="button"
         onClick={handleCardClick}
         onMouseEnter={revealRecallAnswer}
+        onFocus={revealRecallAnswer}
         onMouseLeave={concealRecallAnswer}
         onBlur={concealRecallAnswer}
         aria-label={settings.displayMode !== 'full' && !revealed ? tr('Reveal answer', 'Показать ответ') : tr('Next card', 'Следующая карточка')}
       >
         {loading ? (
           <div className="widget-loading"><span /><span /><span /></div>
+        ) : error ? (
+          <div className="widget-empty" role="alert">{tr('Could not load cards. Click to retry.', 'Не удалось загрузить карточки. Нажмите, чтобы повторить.')}<small>{localizedError(language, error)}</small></div>
         ) : currentCard ? (
           <div className="card-transition" key={currentCard.id}>
             <KanjiCard card={currentCard} settings={settings} concealment={concealment} />
           </div>
         ) : (
-          <div className="widget-empty">{tr('The deck is empty', 'Колода пуста')}</div>
+          <div className="widget-empty">{tr('No cards due right now', 'Сейчас нет карточек для повторения')}</div>
         )}
       </button>
 
       <div className="widget-hud">
         <button type="button" onClick={previous} aria-label={tr('Previous card', 'Предыдущая')}><ChevronLeft size={16} /></button>
         <span className="pool-position">{cards.length ? index + 1 : 0}<i>/</i>{cards.length}</span>
+        <button type="button" onClick={next} aria-label={tr('Next card', 'Следующая')}><ChevronRight size={16} /></button>
         <span className="pause-indicator">{paused ? <Pause size={11} /> : <Play size={11} />}</span>
         <button type="button" aria-label={tr('Edit current card', 'Редактировать текущую карточку')} title={tr('Edit card', 'Редактировать карточку')} disabled={!currentCard} onClick={() => { if (currentCard) void openCardEditor(settings.deckId, currentCard.id) }}><Pencil size={13} /></button>
         <button type="button" aria-label={tr('Open settings', 'Открыть настройки')} title={tr('Settings', 'Настройки')} onClick={() => openAppWindow('settings')}><Settings2 size={13} /></button>
-        <button type="button" onClick={next} aria-label={tr('Next card', 'Следующая')}><ChevronRight size={16} /></button>
       </div>
 
       {contextOpen && (

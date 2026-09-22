@@ -1,5 +1,6 @@
 import cardsJson from '../data/cards.generated.json'
 import { DEFAULT_SETTINGS, DECKS } from '../domain/defaults'
+import { normalizeSettings } from '../domain/settings'
 import type {
   AppSettings, Card, DailyPool, Deck, ImportedAnkiCard, ManagedCard, PersistedCardState,
 } from '../domain/types'
@@ -74,7 +75,10 @@ async function getDatabase() {
         updated_at TEXT NOT NULL, PRIMARY KEY (deck_id, card_id)
       )`)
       return database
-    })()
+    })().catch((error: unknown) => {
+      databasePromise = null
+      throw error
+    })
   }
   return databasePromise
 }
@@ -111,16 +115,19 @@ function getBuiltInCardsForDeck(deckId: string) {
   return deck ? cards.filter((card) => card.jlpt === deck.level) : []
 }
 
-async function loadCustomDecks(): Promise<CustomDeckRecord[]> {
+async function loadCustomDecks(deckId?: string): Promise<CustomDeckRecord[]> {
   const database = await getDatabase()
-  if (!database) return readLocal<CustomDeckRecord[]>(CUSTOM_DECKS_KEY, [])
+  if (!database) {
+    const records = readLocal<CustomDeckRecord[]>(CUSTOM_DECKS_KEY, [])
+    return deckId ? records.filter((deck) => deck.id === deckId) : records
+  }
   const rows = await database.select<Array<{
     id: string
     name: string
     description: string
     cards: string
     imported_at: string
-  }>>('SELECT id, name, description, cards, imported_at FROM custom_decks ORDER BY imported_at DESC')
+  }>>(`SELECT id, name, description, cards, imported_at FROM custom_decks ${deckId ? 'WHERE id = $1' : ''} ORDER BY imported_at DESC`, deckId ? [deckId] : [])
   return rows.flatMap((row) => {
     try {
       return [{ id: row.id, name: row.name, description: row.description, cards: JSON.parse(row.cards) as Card[], importedAt: row.imported_at }]
@@ -197,14 +204,18 @@ async function removeCardOverride(deckId: string, cardId: string) {
 async function getBaseDeckCards(deckId: string): Promise<{ cards: Card[]; origin: 'builtin' | 'imported' }> {
   const builtIn = getBuiltInCardsForDeck(deckId)
   if (builtIn.length || DECKS.some((deck) => deck.id === deckId)) return { cards: builtIn, origin: 'builtin' }
-  const custom = (await loadCustomDecks()).find((deck) => deck.id === deckId)
+  const custom = (await loadCustomDecks(deckId))[0]
   if (custom) return { cards: custom.cards, origin: 'imported' }
-  return { cards: getBuiltInCardsForDeck(DEFAULT_SETTINGS.deckId), origin: 'builtin' }
+  return { cards: [], origin: 'imported' }
 }
 
 export async function getManagedCardsForDeck(deckId: string, includeHidden = true): Promise<ManagedCard[]> {
   const base = await getBaseDeckCards(deckId)
   const overrides = await loadCardOverrides(deckId)
+  return applyCardOverrides(base, overrides, includeHidden)
+}
+
+function applyCardOverrides(base: { cards: Card[]; origin: 'builtin' | 'imported' }, overrides: CardOverrideRecord[], includeHidden: boolean): ManagedCard[] {
   const overrideMap = new Map(overrides.map((record) => [record.cardId, record]))
   const result: ManagedCard[] = base.cards.flatMap((card) => {
     const override = overrideMap.get(card.id)
@@ -225,7 +236,14 @@ export async function getManagedCardsForDeck(deckId: string, includeHidden = tru
 }
 
 export async function getDecks(): Promise<Deck[]> {
-  const custom = await loadCustomDecks()
+  const [custom, overrides] = await Promise.all([loadCustomDecks(), loadCardOverrides()])
+  const customById = new Map(custom.map((deck) => [deck.id, deck]))
+  const overridesByDeck = new Map<string, CardOverrideRecord[]>()
+  for (const override of overrides) {
+    const list = overridesByDeck.get(override.deckId) ?? []
+    list.push(override)
+    overridesByDeck.set(override.deckId, list)
+  }
   const deckList: Deck[] = [
     ...DECKS,
     ...custom.map((deck) => ({
@@ -237,14 +255,18 @@ export async function getDecks(): Promise<Deck[]> {
       source: 'anki' as const,
     })),
   ]
-  return Promise.all(deckList.map(async (deck) => {
-    const cardCount = (await getManagedCardsForDeck(deck.id, false)).length
+  return deckList.map((deck) => {
+    const imported = customById.get(deck.id)
+    const cardCount = applyCardOverrides({
+      cards: imported?.cards ?? getBuiltInCardsForDeck(deck.id),
+      origin: imported ? 'imported' : 'builtin',
+    }, overridesByDeck.get(deck.id) ?? [], false).length
     return {
       ...deck,
       cardCount,
       description: deck.source === 'anki' ? `${cardCount} карточек · импортировано из .apkg` : deck.description,
     }
-  }))
+  })
 }
 
 export async function getCardsForDeck(deckId: string) {
@@ -263,9 +285,14 @@ function createDeckId() {
 }
 
 export async function saveImportedDeck(name: string, imported: ImportedAnkiCard[]) {
+  const requestedName = name.trim() || 'Импорт Anki'
   const records = await loadCustomDecks()
-  const existing = records.find((deck) => deck.name.toLocaleLowerCase() === name.toLocaleLowerCase())
-  const deckId = existing?.id ?? createDeckId()
+  const names = new Set(records.map((deck) => deck.name.toLocaleLowerCase()))
+  let normalizedName = requestedName
+  for (let suffix = 2; names.has(normalizedName.toLocaleLowerCase()); suffix += 1) {
+    normalizedName = `${requestedName} (${suffix})`
+  }
+  const deckId = createDeckId()
   const uniqueIncoming = new Map<string, ImportedAnkiCard>()
   for (const card of imported) {
     const key = importedCardKey(card)
@@ -300,7 +327,7 @@ export async function saveImportedDeck(name: string, imported: ImportedAnkiCard[
   }))
   const record: CustomDeckRecord = {
     id: deckId,
-    name: name.trim() || 'Импорт Anki',
+    name: normalizedName,
     description: `${cards.length} карточек · импортировано из .apkg`,
     cards,
     importedAt: new Date().toISOString(),
@@ -336,28 +363,26 @@ export async function deleteCustomDeck(deckId: string) {
     Object.keys(pools).filter((key) => key.startsWith(`${deckId}:`)).forEach((key) => delete pools[key])
     localStorage.setItem(POOLS_KEY, JSON.stringify(pools))
   } else {
-    await database.execute('DELETE FROM custom_decks WHERE id = $1', [deckId])
-    await database.execute('DELETE FROM deck_card_overrides WHERE deck_id = $1', [deckId])
-    await database.execute('DELETE FROM card_states WHERE card_id LIKE $1', [`${deckId}:%`])
-    await database.execute('DELETE FROM review_logs WHERE card_id LIKE $1', [`${deckId}:%`])
-    await database.execute('DELETE FROM daily_pools WHERE pool_key LIKE $1', [`${deckId}:%`])
+    const { invoke } = await import('@tauri-apps/api/core')
+    await invoke('clear_deck_progress', { deckId, cardIds, removeDeck: true })
   }
   await emitAppEvent('kanjiwidget:pool-changed')
 }
 
 export async function loadSettings(): Promise<AppSettings> {
   const database = await getDatabase()
-  if (!database) return { ...DEFAULT_SETTINGS, ...readLocal<Partial<AppSettings>>(SETTINGS_KEY, {}) }
+  if (!database) return normalizeSettings(readLocal<unknown>(SETTINGS_KEY, {}))
   const rows = await database.select<Array<{ value: string }>>('SELECT value FROM app_settings WHERE id = 1')
   if (!rows.length) return DEFAULT_SETTINGS
   try {
-    return { ...DEFAULT_SETTINGS, ...(JSON.parse(rows[0].value) as Partial<AppSettings>) }
+    return normalizeSettings(JSON.parse(rows[0].value))
   } catch {
     return DEFAULT_SETTINGS
   }
 }
 
 export async function saveSettings(settings: AppSettings) {
+  settings = normalizeSettings(settings)
   const database = await getDatabase()
   if (!database) {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings))
@@ -381,30 +406,10 @@ export async function loadAllStates(): Promise<Map<string, PersistedCardState>> 
 }
 
 export async function getOrCreateState(cardId: string) {
-  const states = await loadAllStates()
-  return states.get(cardId) ?? createNewState(cardId)
-}
-
-async function saveState(state: PersistedCardState) {
   const database = await getDatabase()
-  if (!database) {
-    const states = readLocal<Record<string, PersistedCardState>>(STATES_KEY, {})
-    states[state.card_id] = state
-    localStorage.setItem(STATES_KEY, JSON.stringify(states))
-    return
-  }
-  await database.execute(
-    `INSERT INTO card_states
-      (card_id, due, stability, difficulty, elapsed_days, scheduled_days, learning_steps, reps, lapses, state, last_review)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-      ON CONFLICT(card_id) DO UPDATE SET due=excluded.due, stability=excluded.stability,
-      difficulty=excluded.difficulty, elapsed_days=excluded.elapsed_days,
-      scheduled_days=excluded.scheduled_days, learning_steps=excluded.learning_steps,
-      reps=excluded.reps, lapses=excluded.lapses, state=excluded.state,
-      last_review=excluded.last_review`,
-    [state.card_id, state.due, state.stability, state.difficulty, state.elapsed_days,
-      state.scheduled_days, state.learning_steps, state.reps, state.lapses, state.state, state.last_review],
-  )
+  if (!database) return readLocal<Record<string, PersistedCardState>>(STATES_KEY, {})[cardId] ?? createNewState(cardId)
+  const rows = await database.select<PersistedCardState[]>('SELECT * FROM card_states WHERE card_id = $1', [cardId])
+  return rows[0] ?? createNewState(cardId)
 }
 
 async function readPool(key: string): Promise<DailyPool | null> {
@@ -577,13 +582,14 @@ export async function buildQuizPool(settings: AppSettings): Promise<Card[]> {
 export async function reviewCard(cardId: string, rating: 1 | 2 | 3 | 4, settings: AppSettings) {
   const current = await getOrCreateState(cardId)
   const next = reviewState(current, rating, settings.requestRetention)
-  await saveState(next)
   const database = await getDatabase()
   if (database) {
-    await database.execute(
-      'INSERT INTO review_logs (card_id, rating, reviewed_at, due) VALUES ($1,$2,$3,$4)',
-      [cardId, rating, new Date().toISOString(), next.due],
-    )
+    const { invoke } = await import('@tauri-apps/api/core')
+    await invoke('save_review', { state: next, rating })
+  } else {
+    const states = readLocal<Record<string, PersistedCardState>>(STATES_KEY, {})
+    states[cardId] = next
+    localStorage.setItem(STATES_KEY, JSON.stringify(states))
   }
   return next
 }
@@ -601,13 +607,12 @@ export async function resetDeckProgress(deckId: string) {
     const states = readLocal<Record<string, PersistedCardState>>(STATES_KEY, {})
     cardIds.forEach((id) => delete states[id])
     localStorage.setItem(STATES_KEY, JSON.stringify(states))
-    localStorage.removeItem(POOLS_KEY)
+    const pools = readLocal<Record<string, DailyPool>>(POOLS_KEY, {})
+    Object.keys(pools).filter((key) => key.startsWith(`${deckId}:`)).forEach((key) => delete pools[key])
+    localStorage.setItem(POOLS_KEY, JSON.stringify(pools))
   } else {
-    for (const id of cardIds) {
-      await database.execute('DELETE FROM card_states WHERE card_id = $1', [id])
-      await database.execute('DELETE FROM review_logs WHERE card_id = $1', [id])
-    }
-    await database.execute('DELETE FROM daily_pools WHERE pool_key LIKE $1', [`${deckId}:%`])
+    const { invoke } = await import('@tauri-apps/api/core')
+    await invoke('clear_deck_progress', { deckId, cardIds, removeDeck: false })
   }
   await emitAppEvent('kanjiwidget:pool-changed')
 }
