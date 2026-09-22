@@ -619,6 +619,21 @@ h2 {
 .download-section > * { position: relative; z-index: 1; }
 .download-section h2 { max-width: 800px; margin-inline: auto; }
 .download-section > p:not(.eyebrow, .security-note) { color: var(--muted); }
+.download-count {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  margin: 15px 0 0;
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-soft);
+  font-size: 0.84rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.download-count[hidden] { display: none; }
 .download-actions { justify-content: center; margin-top: 31px; }
 
 .download-glow {
