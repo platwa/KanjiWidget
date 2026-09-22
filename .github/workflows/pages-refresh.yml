@@ -1,0 +1,23 @@
+name: Refresh GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "docs/**"
+      - ".github/workflows/pages-refresh.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+
+jobs:
+  request-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Request a Pages build from main/docs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api --method POST "repos/${{ github.repository }}/pages/builds"
