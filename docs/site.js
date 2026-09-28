@@ -1,8 +1,8 @@
 const LANGUAGE_KEY = "kanjiwidget-site-language";
-const DOWNLOAD_COUNT_KEY = "kanjiwidget-download-count";
+const DOWNLOAD_COUNT_KEY = "kanjiwidget-package-download-count";
 const supportedLanguages = new Set(["en", "ru"]);
 const statsEnabled = new URLSearchParams(window.location.search).get("stats") === "1";
-const downloadStatsUrl = "https://img.shields.io/github/downloads/platwa/KanjiWidget/total.json";
+const downloadStatsUrl = "https://api.github.com/repos/platwa/KanjiWidget/releases?per_page=100";
 let releaseDownloadCount = null;
 
 function preferredLanguage() {
@@ -45,10 +45,10 @@ function updateDownloadCount() {
 
   const russian = document.documentElement.lang === "ru";
   const formatted = new Intl.NumberFormat(russian ? "ru-RU" : "en-US").format(releaseDownloadCount);
-  element.textContent = russian ? `${formatted} скачиваний` : `${formatted} downloads`;
+  element.textContent = russian ? `${formatted} загрузок дистрибутивов` : `${formatted} package downloads`;
   element.title = russian
-    ? "Общее число загрузок прикреплённых файлов релизов по данным GitHub"
-    : "Total downloads of attached release files reported by GitHub";
+    ? "Загрузки EXE и MSI за все релизы по данным GitHub; повторные загрузки учитываются"
+    : "EXE and MSI downloads across releases reported by GitHub; repeat downloads are included";
   element.hidden = false;
 }
 
@@ -64,8 +64,11 @@ async function loadDownloadCount() {
     const response = await fetch(downloadStatsUrl);
     if (!response.ok) return;
 
-    const badge = await response.json();
-    releaseDownloadCount = Number(badge.value ?? badge.message);
+    const releases = await response.json();
+    if (!Array.isArray(releases)) return;
+    releaseDownloadCount = releases.reduce((total, release) => total +
+      (release.assets || []).reduce((assetTotal, asset) =>
+        assetTotal + (/\.(exe|msi)$/i.test(asset.name) ? Number(asset.download_count) || 0 : 0), 0), 0);
     if (!Number.isFinite(releaseDownloadCount)) return;
     window.localStorage.setItem(DOWNLOAD_COUNT_KEY, JSON.stringify({
       count: releaseDownloadCount,
