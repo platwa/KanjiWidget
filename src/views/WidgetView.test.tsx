@@ -48,6 +48,21 @@ afterEach(() => {
 })
 
 describe('widget pool updates', () => {
+  it.each([
+    { enabled: true, completed: null, visible: true },
+    { enabled: false, completed: null, visible: false },
+    { enabled: true, completed: new Date().toISOString(), visible: false },
+    { enabled: true, completed: new Date(Date.now() - 25 * 3_600_000).toISOString(), visible: true },
+  ])('shows the review reminder only when enabled and due: $enabled / $completed', async ({ enabled, completed, visible }) => {
+    storageMocks.loadSettings.mockResolvedValue({ ...DEFAULT_SETTINGS, reviewReminder: enabled })
+    storageMocks.getLastCompletedReview.mockResolvedValueOnce(completed)
+    storageMocks.buildDailyPool.mockResolvedValue([card])
+    const view = render(<WidgetView />)
+    await waitFor(() => expect(view.container.querySelector('.kanji-glyph')).toBeInTheDocument())
+    expect(view.container.querySelector('.widget-review-reminder') !== null).toBe(visible)
+    expect(view.getByRole('button', { name: /^Start review$/ })).toBeInTheDocument()
+  })
+
   it('shows optional rōmaji with the answer and hides it during active recall', async () => {
     storageMocks.loadSettings.mockResolvedValue({ ...DEFAULT_SETTINGS, displayMode: 'active-recall', showRomaji: true })
     storageMocks.buildDailyPool.mockResolvedValue([card])
