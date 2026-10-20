@@ -67,7 +67,7 @@ jobs:
         run: |
           if ("${{ inputs.msix_compatibility_test }}" -eq "true") {
             if ("${{ inputs.microsoft_store }}" -eq "true") { throw "Choose only one Store packaging mode." }
-            pnpm tauri build --no-bundle
+            pnpm tauri build --no-bundle --config src-tauri/tauri.msix-test.conf.json
           } elseif ("${{ inputs.microsoft_store }}" -eq "true") {
             pnpm tauri build --config src-tauri/tauri.microsoftstore.conf.json
           } else {

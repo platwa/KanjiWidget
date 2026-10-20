@@ -188,6 +188,12 @@ export async function importAnkiCards(path: string, mapping: AnkiFieldMapping) {
   return invoke<ImportedAnkiCard[]>('import_anki_cards', { path, mapping })
 }
 
+export async function getPackagedAutostart(): Promise<boolean | null> {
+  if (!isTauri()) return null
+  const { invoke } = await import('@tauri-apps/api/core')
+  return invoke<boolean | null>('packaged_autostart', { enabled: null })
+}
+
 export async function setAutostart(enabled: boolean) {
   if (!isTauri()) return
   const { invoke } = await import('@tauri-apps/api/core')

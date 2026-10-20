@@ -16,7 +16,7 @@ import { DEFAULT_SETTINGS, DECKS } from '../domain/defaults'
 import { normalizeSettings } from '../domain/settings'
 import type { AppSettings, Deck, DisplayMode, FontSize, ThemeMode } from '../domain/types'
 import { applyDocumentLanguage, cardCountLabel, localizedError, numberLocale, tx } from '../i18n'
-import { listenAppEvent, openExternal, pickLockscreenFolder, setAutostart } from '../services/platform'
+import { getPackagedAutostart, listenAppEvent, openExternal, pickLockscreenFolder, setAutostart } from '../services/platform'
 import { deleteCustomDeck, getDeckProgress, getDecks, loadSettings, resetDeckProgress, saveSettings } from '../services/storage'
 
 type SectionId = 'appearance' | 'widget' | 'learning' | 'decks' | 'lockscreen' | 'about'
@@ -62,7 +62,14 @@ export function SettingsScreen() {
   }
 
   useEffect(() => {
-    void loadSettings().then((value) => {
+    void loadSettings().then(async (stored) => {
+      let value = stored
+      try {
+        const startup = await getPackagedAutostart()
+        if (startup !== null) value = { ...stored, autostart: startup }
+      } catch (reason) {
+        setNotice(localizedError(stored.language, reason))
+      }
       setSettings(value)
       setSaved(value)
       const reminder = localStorage.getItem(SUPPORT_REMINDER_KEY)
