@@ -13,7 +13,8 @@ param(
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path $PSScriptRoot -Parent
 if (-not $Version) { $Version = (Get-Content (Join-Path $repo 'package.json') -Raw | ConvertFrom-Json).version + '.0' }
-if ($Version -notmatch '^\d+\.\d+\.\d+\.0$') { throw 'Store versions must contain four numeric parts and end in .0.' }
+$versionPattern = if ($IdentityName -eq 'KanjiWidget.MsixCompatibilityTest') { '^\d+\.\d+\.\d+\.\d+$' } else { '^\d+\.\d+\.\d+\.0$' }
+if ($Version -notmatch $versionPattern) { throw 'Store versions must contain four numeric parts and end in .0; only the local compatibility-test identity may use a nonzero revision.' }
 if ($IdentityName -notmatch '^[A-Za-z0-9.-]{3,50}$') { throw 'Invalid MSIX package identity name.' }
 if (-not $OutputDirectory) { $OutputDirectory = Join-Path $repo 'output\msix' }
 $executable = (Resolve-Path -LiteralPath $ExecutablePath).Path
