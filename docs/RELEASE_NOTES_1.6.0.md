@@ -6,6 +6,7 @@
 - Optional local review reminders are enabled by default. An icon appears when no completed review is recorded for the selected deck or more than 24 hours have passed. Hover to see when you last completed a review; click to start one. Finishing a full test clears the reminder. Closing a test early still saves individual ratings but does not mark the test complete.
 - **Active Recall** is the default display mode for new installations. Existing display preferences are preserved.
 - Aligned the learning settings fields and added pointer cursors to clickable links and controls.
+- Fixed switches being squeezed by long descriptions, and refreshed deck counters immediately after reviews.
 - Prepared packaged Windows startup support for MSIX compatibility testing. Microsoft Store publication is separate; no Store availability is claimed for this release.
 
 Cards, progress, settings, and reminder timestamps stay on your computer. No account, telemetry, or network connection is required for studying.
@@ -16,6 +17,7 @@ Cards, progress, settings, and reminder timestamps stay on your computer. No acc
 - Локальное напоминание включено по умолчанию. Значок появляется, если для выбранной колоды ещё нет сохранённого завершения теста или прошло больше 24 часов. Наведение показывает время последнего прохождения, нажатие запускает тест. После полного прохождения значок исчезает. При досрочном закрытии отдельные оценки сохраняются, но тест не отмечается как завершённый.
 - **Активное вспоминание** стало режимом по умолчанию для новых установок. Выбранный ранее режим сохраняется.
 - Выровнены поля в разделе обучения; у кликабельных ссылок и элементов управления появился курсор-указатель.
+- Исправлено сжатие переключателей длинными описаниями; статистика колод теперь обновляется сразу после теста.
 - Подготовлена поддержка автозапуска упакованного приложения для проверки MSIX. Публикация в Microsoft Store выполняется отдельно; этот релиз не означает появления приложения в магазине.
 
 Карточки, прогресс, настройки и время прохождения тестов хранятся на компьютере. Для обучения не нужны аккаунт, телеметрия или интернет.

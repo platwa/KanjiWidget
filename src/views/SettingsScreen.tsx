@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import {
   BookOpenCheck, Bug, Check, ChevronRight, Clock3, FolderOpen, Github, Heart, Info, Layers3,
   LibraryBig, Mail, MonitorCog, Palette, Plus, RefreshCcw, RotateCcw, Save,
@@ -57,12 +57,12 @@ export function SettingsScreen() {
   ]
 
   const update = <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => setSettings((current) => ({ ...current, [key]: value }))
-  const refreshProgress = async () => {
+  const refreshProgress = useCallback(async () => {
     const availableDecks = await getDecks()
     setDecks(availableDecks)
     const values = await Promise.all(availableDecks.map(async (deck) => [deck.id, await getDeckProgress(deck.id)] as const))
     setProgress(Object.fromEntries(values))
-  }
+  }, [])
 
   useEffect(() => {
     void loadSettings().then(async (stored) => {
@@ -80,7 +80,13 @@ export function SettingsScreen() {
       else if (isSupportReminderDue(reminder)) setSupportOpen(true)
     }).catch((reason: unknown) => setNotice(localizedError(DEFAULT_SETTINGS.language, reason)))
     void refreshProgress().catch((reason: unknown) => setNotice(localizedError(DEFAULT_SETTINGS.language, reason)))
-  }, [])
+  }, [refreshProgress])
+  useEffect(() => {
+    const cleanup = listenAppEvent('kanjiwidget:pool-changed', () => {
+      void refreshProgress().catch((reason: unknown) => setNotice(localizedError(language, reason)))
+    })
+    return () => { void cleanup.then((dispose) => dispose()) }
+  }, [refreshProgress, language])
   useEffect(() => { applyDocumentLanguage(language) }, [language])
   useEffect(() => {
     let cancelled = false
