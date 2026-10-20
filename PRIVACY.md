@@ -10,7 +10,7 @@ The application stores settings, decks, imported card text, review history, and 
 
 KanjiWidget does not include analytics, telemetry, advertising, an account system, or background synchronization. Core study features work without a network connection.
 
-Once per day while the application is running, KanjiWidget may request the public `latest.json` file from the project's GitHub Releases page to check for a signed update. The request does not include decks, review history, settings, or a device identifier. As with any HTTPS request, GitHub can receive standard connection information such as the user's IP address. If an update is available, KanjiWidget asks before downloading and installing it. Users can also start the same check manually from the About page.
+KanjiWidget does not check for updates, download them, or install them. Users can see the installed version on the About page and check the project website or GitHub Releases for new versions themselves.
 
 User-initiated actions can open the following external destinations in the default browser or email client:
 

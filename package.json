@@ -31,7 +31,6 @@
     "@tauri-apps/plugin-global-shortcut": "^2.3.1",
     "@tauri-apps/plugin-opener": "^2.5.0",
     "@tauri-apps/plugin-sql": "^2.3.1",
-    "@tauri-apps/plugin-updater": "^2.11.0",
     "lucide-react": "^0.542.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
