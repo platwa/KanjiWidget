@@ -7,8 +7,8 @@
 <p align="center">
   <a href="https://platwa.github.io/KanjiWidget/"><strong>Website</strong></a>
   ·
-  <a href="https://github.com/platwa/KanjiWidget/releases/download/v1.6.0/KanjiWidget-1.6.0-x64-Setup.exe"><strong>Download for Windows</strong></a>
-  · <a href="https://github.com/platwa/KanjiWidget/releases/tag/v1.6.0">Release notes</a>
+  <a href="https://github.com/platwa/KanjiWidget/releases/download/v1.6.1/KanjiWidget-1.6.1-x64-Setup.exe"><strong>Download for Windows</strong></a>
+  · <a href="https://github.com/platwa/KanjiWidget/releases/tag/v1.6.1">Release notes</a>
   · <a href="#русский">Русский</a>
 </p>
 
@@ -61,13 +61,13 @@ The widget stays compact on the desktop, while Review and Settings open as focus
 
 Download published packages from [GitHub Releases](https://github.com/platwa/KanjiWidget/releases). The recommended option for most users is the per-user Setup executable.
 
-The `output` directory contains three Windows x64 packages for version 1.6.0:
+The `output` directory contains three Windows x64 packages for version 1.6.1:
 
-- `KanjiWidget-1.6.0-x64-Setup.exe` — recommended per-user installer;
-- `KanjiWidget-1.6.0-x64.msi` — MSI package for managed deployment;
-- `KanjiWidget-1.6.0-x64-Portable.exe` — portable build that requires no installation.
+- `KanjiWidget-1.6.1-x64-Setup.exe` — recommended per-user installer;
+- `KanjiWidget-1.6.1-x64.msi` — MSI package for managed deployment;
+- `KanjiWidget-1.6.1-x64-Portable.exe` — portable build that requires no installation.
 
-`SHA256SUMS-1.6.0.txt` contains SHA-256 checksums. Public releases are currently unsigned, so Windows SmartScreen and some heuristic scanners may warn about an unfamiliar publisher. The checksums and reproducible source build make the packages verifiable.
+`SHA256SUMS-1.6.1.txt` contains SHA-256 checksums. Public releases are currently unsigned, so Windows SmartScreen and some heuristic scanners may warn about an unfamiliar publisher. The checksums and reproducible source build make the packages verifiable.
 
 KanjiWidget is applying for **free code signing provided by [SignPath.io](https://signpath.io/), certificate by [SignPath Foundation](https://signpath.org/)**. After approval, official signed packages will be built only from this public repository by GitHub Actions; current packages remain unsigned.
 
@@ -128,8 +128,8 @@ KanjiWidget source code is licensed under the [Apache License 2.0](LICENSE). Thi
 <p align="center">
   <a href="https://platwa.github.io/KanjiWidget/"><strong>Сайт</strong></a>
   ·
-  <a href="https://github.com/platwa/KanjiWidget/releases/download/v1.6.0/KanjiWidget-1.6.0-x64-Setup.exe"><strong>Скачать для Windows</strong></a>
-  · <a href="https://github.com/platwa/KanjiWidget/releases/tag/v1.6.0">Описание релиза</a>
+  <a href="https://github.com/platwa/KanjiWidget/releases/download/v1.6.1/KanjiWidget-1.6.1-x64-Setup.exe"><strong>Скачать для Windows</strong></a>
+  · <a href="https://github.com/platwa/KanjiWidget/releases/tag/v1.6.1">Описание релиза</a>
 </p>
 
 KanjiWidget — бесплатное приложение с открытым исходным кодом для Windows 10/11: оно показывает карточки с японскими словами и кандзи на рабочем столе. Изучайте слова с чтением, переводом и примерами предложений, затем повторяйте их по алгоритму FSRS. Программа работает офлайн, не требует аккаунта, а язык переключается в разделе **Настройки → Интерфейс**.

@@ -17,6 +17,30 @@ DICTIONARY_DIR = ROOT / "tmp" / "jlpt-kanji-dictionary"
 OUTPUT = ROOT / "src" / "data" / "cards.generated.json"
 SENTENCE_ENRICHMENT = ROOT / "scripts" / "sentence_enrichment.json"
 
+# These are valid dictionary entries, but poor examples for beginner decks:
+# they are rare, distracting, or introduce mature themes unrelated to the
+# character's core beginner meaning. Keep them out of the bundled N5/N4 cards.
+EXCLUDED_EXAMPLE_HEADWORDS = {
+    "朝雲暮雨",  # sexual liaison
+    "校内暴力",  # school violence
+    "日華戦争",  # historical war
+    "午砲",      # noon gun
+    "墜死",      # death by falling
+    "帰天",      # euphemism for death
+    "夜酒",      # alcoholic drink at night
+    "血族結婚",  # consanguineous marriage
+    "大演習",    # military maneuvers
+    "戦前派",    # prewar generation
+    "男性差別",  # unrelated social/political topic
+    "死因",      # death from disease; not a useful beginner example
+    "死刑判決",  # capital punishment
+    "死に目",    # moment of death
+}
+
+# Context-dependent dictionary senses are omitted where they would be
+# misleading or distracting in a short beginner card.
+EN_OVERRIDE = {"飲": "drink; take"}
+
 RU_FALLBACK = {
     "人": "человек", "入": "входить; вставлять", "名": "имя; известный",
     "聞": "слышать; спрашивать", "電": "электричество", "読": "читать",
@@ -179,6 +203,8 @@ def main() -> None:
 
         examples = []
         for word in containing.get(kanji, []):
+            if word.get("kanji") in EXCLUDED_EXAMPLE_HEADWORDS:
+                continue
             gloss_ru = [clean_gloss(item) for item in word.get("glossary_ru", []) if clean_gloss(item)]
             gloss_en = [clean_gloss(item) for item in word.get("glossary_en", []) if clean_gloss(item)]
             if not word.get("reading") or not (gloss_ru or gloss_en):
@@ -215,7 +241,7 @@ def main() -> None:
             "kunyomi": kunyomi,
             "furigana": furigana,
             "meaning_ru": meaning_ru,
-            "meaning_en": "; ".join(en_items[:4]),
+            "meaning_en": EN_OVERRIDE.get(kanji, "; ".join(en_items[:4])),
             "jlpt": base["jlpt"],
             "grade": detail.get("grade"),
             "strokes": base.get("strokes"),
