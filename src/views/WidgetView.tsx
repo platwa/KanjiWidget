@@ -266,7 +266,7 @@ export function WidgetView() {
       </button>
 
       {settings.reviewReminder && !loading && !error && !quizActive.current && cards.length > 0 && reminder.due && (
-        <button type="button" className="widget-review-reminder" title={`${reminder.text} ${tr('Start review', 'Открыть тест')}`} aria-label={`${reminder.text} ${tr('Start review', 'Открыть тест')}`} onClick={() => { void openAppWindow('quiz') }}><CircleAlert size={15} /></button>
+        <button type="button" className="widget-review-reminder" title={`${reminder.text} ${tr('Start review', 'Открыть тест')}`} aria-label={`${reminder.text} ${tr('Start review', 'Открыть тест')}`} onClick={() => { void openAppWindow('quiz') }}><CircleAlert size={16} /></button>
       )}
 
       <div className="widget-hud">
