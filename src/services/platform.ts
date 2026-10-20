@@ -190,6 +190,9 @@ export async function importAnkiCards(path: string, mapping: AnkiFieldMapping) {
 
 export async function setAutostart(enabled: boolean) {
   if (!isTauri()) return
+  const { invoke } = await import('@tauri-apps/api/core')
+  const packaged = await invoke<boolean | null>('packaged_autostart', { enabled })
+  if (packaged !== null) return
   const autostart = await import('@tauri-apps/plugin-autostart')
   const current = await autostart.isEnabled()
   if (enabled && !current) await autostart.enable()

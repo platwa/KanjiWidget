@@ -1,6 +1,6 @@
 [package]
 name = "kanji-widget"
-version = "1.5.1"
+version = "1.5.2"
 description = "Japanese vocabulary and kanji desktop widget"
 authors = ["KanjiWidget"]
 license = "Apache-2.0"
@@ -33,6 +33,9 @@ tempfile = "3"
 url = "2"
 zip = { version = "6", default-features = false, features = ["deflate-flate2-zlib-rs"] }
 zstd = "0.13"
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.61.3", features = ["ApplicationModel", "Win32_System_WinRT"] }
 
 [dev-dependencies]
 sha2 = "0.10"

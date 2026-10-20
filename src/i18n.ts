@@ -33,6 +33,7 @@ export function localizedError(language: Language, reason: unknown) {
   const message = String(reason).replace(/^Error:\s*/, '')
   if (language === 'ru') return message
   const replacements: Array<[RegExp, string]> = [
+    [/Автозапуск отключён в Windows\. Включите KanjiWidget в Параметры → Приложения → Автозагрузка\./i, 'Startup is disabled in Windows. Enable KanjiWidget in Settings → Apps → Startup.'],
     [/Файл Anki не найден/i, 'Anki file not found'],
     [/Поддерживаются только колоды \.apkg/i, 'Only .apkg decks are supported'],
     [/Не удалось открыть \.apkg/i, 'Could not open the .apkg file'],
