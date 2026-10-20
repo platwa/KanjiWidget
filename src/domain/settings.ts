@@ -4,7 +4,7 @@ import type { AppSettings } from './types'
 export function normalizeSettings(value: unknown): AppSettings {
   const source = value && typeof value === 'object' ? value as Record<string, unknown> : {}
   const result = { ...DEFAULT_SETTINGS, questionTypes: [...DEFAULT_SETTINGS.questionTypes] }
-  for (const key of ['showOnyomi', 'showKunyomi', 'showFurigana', 'showRomaji', 'alwaysOnTop', 'autostart', 'lockscreenExport'] as const) {
+  for (const key of ['showOnyomi', 'showKunyomi', 'showFurigana', 'showRomaji', 'alwaysOnTop', 'autostart', 'lockscreenExport', 'reviewReminder'] as const) {
     if (typeof source[key] === 'boolean') result[key] = source[key]
   }
   for (const [key, min, max] of [

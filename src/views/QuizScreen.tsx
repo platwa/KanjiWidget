@@ -48,24 +48,24 @@ export function QuizScreen() {
 
   useEffect(() => { applyDocumentLanguage(language) }, [language])
 
-  const flushSession = useCallback(async () => {
+  const flushSession = useCallback(async (completed = false) => {
     if (!reviewedCardIds.current.size) return
     const reviewed = [...reviewedCardIds.current]
     reviewedCardIds.current.clear()
     try {
-      await finishQuizSession(sessionSettings.current, reviewed)
+      await finishQuizSession(sessionSettings.current, reviewed, completed)
     } catch (error) {
       reviewed.forEach((id) => reviewedCardIds.current.add(id))
       throw error
     }
   }, [])
 
-  const endSession = useCallback(async () => {
+  const endSession = useCallback(async (completed = false) => {
     if (endingSession.current) return endingSession.current
     const ending = (async () => {
       await pendingReview.current
       if (!sessionActive.current) return
-      await flushSession()
+      await flushSession(completed)
       sessionActive.current = false
       await emitAppEvent('kanjiwidget:quiz-session-ended')
     })()
@@ -173,7 +173,7 @@ export function QuizScreen() {
     try {
       const nextState = await write
       if (generation !== loadGeneration.current) return
-      if (cards.length === 1) await endSession()
+      if (cards.length === 1) await endSession(true)
       if (generation !== loadGeneration.current) return
       setSummary((value) => [...value, { cardId: current.id, kanji: current.kanji, rating, due: nextState.due }])
       setRevealed(false)

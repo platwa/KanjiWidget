@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { BookOpenCheck, ChevronLeft, ChevronRight, Grip, LogOut, Pause, Pencil, Play, Settings2 } from 'lucide-react'
+import { BookOpenCheck, CircleAlert, ChevronLeft, ChevronRight, Grip, LogOut, Pause, Pencil, Play, Settings2 } from 'lucide-react'
 import { KanjiCard } from '../components/KanjiCard'
 import { DEFAULT_SETTINGS } from '../domain/defaults'
 import type { AppSettings, Card } from '../domain/types'
+import { reviewReminderStatus } from '../domain/reviewReminder'
 import { applyDocumentLanguage, localizedError, tx } from '../i18n'
 import {
   applyWidgetWindowSettings,
@@ -17,7 +18,7 @@ import {
   setNativeLanguage,
   startWidgetResize,
 } from '../services/platform'
-import { buildDailyPool, buildQuizPool, loadSettings } from '../services/storage'
+import { buildDailyPool, buildQuizPool, getLastCompletedReview, loadSettings } from '../services/storage'
 
 function shuffle<T>(items: T[]) {
   const copy = [...items]
@@ -37,6 +38,7 @@ export function WidgetView() {
   const [contextOpen, setContextOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [lastCompleted, setLastCompleted] = useState<string | null>(null)
   const refreshGeneration = useRef(0)
   const wheelLocked = useRef(false)
   const quizActive = useRef(false)
@@ -51,10 +53,12 @@ export function WidgetView() {
     const generation = ++refreshGeneration.current
     try {
       const nextSettings = await loadSettings()
+      const completed = await getLastCompletedReview(nextSettings.deckId)
       const pool = quizActive.current ? await buildQuizPool(nextSettings) : await buildDailyPool(nextSettings)
       if (generation !== refreshGeneration.current) return
       setError('')
       setSettings(nextSettings)
+      setLastCompleted(completed)
       setCards((current) => {
         const nextCards = new Map(pool.map((card) => [card.id, card]))
         const sameMembership = current.length === pool.length && current.every((card) => nextCards.has(card.id))
@@ -81,6 +85,7 @@ export function WidgetView() {
     const cleanups = [
       listenAppEvent('kanjiwidget:settings-changed', refresh),
       listenAppEvent('kanjiwidget:pool-changed', refresh),
+      listenAppEvent('kanjiwidget:review-completed', refresh),
       listenAppEvent('kanjiwidget:quiz-session-started', () => {
         quizActive.current = true
         void refresh()
@@ -94,6 +99,7 @@ export function WidgetView() {
   }, [refresh])
 
   const currentCard = cards[index]
+  const reminder = reviewReminderStatus(lastCompleted, language)
   const clearRecallTimers = useCallback(() => {
     if (revealTimer.current !== null) window.clearTimeout(revealTimer.current)
     if (concealTimer.current !== null) window.clearTimeout(concealTimer.current)
@@ -259,11 +265,16 @@ export function WidgetView() {
         )}
       </button>
 
+      {settings.reviewReminder && !loading && !error && !quizActive.current && cards.length > 0 && reminder.due && (
+        <button type="button" className="widget-review-reminder" title={`${reminder.text} ${tr('Start review', 'Открыть тест')}`} aria-label={`${reminder.text} ${tr('Start review', 'Открыть тест')}`} onClick={() => { void openAppWindow('quiz') }}><CircleAlert size={15} /></button>
+      )}
+
       <div className="widget-hud">
         <button type="button" onClick={previous} aria-label={tr('Previous card', 'Предыдущая')}><ChevronLeft size={16} /></button>
         <span className="pool-position">{cards.length ? index + 1 : 0}<i>/</i>{cards.length}</span>
         <button type="button" onClick={next} aria-label={tr('Next card', 'Следующая')}><ChevronRight size={16} /></button>
         <span className="pause-indicator">{paused ? <Pause size={11} /> : <Play size={11} />}</span>
+        <button type="button" aria-label={tr('Start review', 'Открыть тест')} title={tr('Start review', 'Открыть тест')} onClick={() => { void openAppWindow('quiz') }}><BookOpenCheck size={14} /></button>
         <button type="button" aria-label={tr('Edit current card', 'Редактировать текущую карточку')} title={tr('Edit card', 'Редактировать карточку')} disabled={!currentCard} onClick={() => { if (currentCard) void openCardEditor(settings.deckId, currentCard.id) }}><Pencil size={13} /></button>
         <button type="button" aria-label={tr('Open settings', 'Открыть настройки')} title={tr('Settings', 'Настройки')} onClick={() => openAppWindow('settings')}><Settings2 size={13} /></button>
       </div>

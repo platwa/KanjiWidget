@@ -8,6 +8,7 @@ const storageMocks = vi.hoisted(() => ({
   buildDailyPool: vi.fn(),
   buildQuizPool: vi.fn(),
   loadSettings: vi.fn(),
+  getLastCompletedReview: vi.fn().mockResolvedValue(null),
 }))
 
 vi.mock('../services/storage', () => storageMocks)

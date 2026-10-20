@@ -104,6 +104,7 @@ export interface PersistedCardState {
 }
 
 export interface AppSettings {
+  reviewReminder: boolean
   poolSize: number
   rotateIntervalSec: number
   poolRefreshTime: string

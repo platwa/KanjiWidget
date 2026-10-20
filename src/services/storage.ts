@@ -49,6 +49,9 @@ async function getDatabase() {
     databasePromise = (async () => {
       const { default: Database } = await import('@tauri-apps/plugin-sql')
       const database = (await Database.load('sqlite:kanjiwidget.db')) as SqlDatabase
+      await database.execute(`CREATE TABLE IF NOT EXISTS review_sessions (
+        deck_id TEXT PRIMARY KEY, completed_at TEXT NOT NULL
+      )`)
       await database.execute(`CREATE TABLE IF NOT EXISTS app_settings (
         id INTEGER PRIMARY KEY CHECK (id = 1), value TEXT NOT NULL
       )`)
@@ -594,9 +597,29 @@ export async function reviewCard(cardId: string, rating: 1 | 2 | 3 | 4, settings
   return next
 }
 
-export async function finishQuizSession(settings: AppSettings, reviewedCardIds: readonly string[]) {
+export async function getLastCompletedReview(deckId: string): Promise<string | null> {
+  const database = await getDatabase()
+  if (!database) return readLocal<Record<string, string>>('kanjiwidget:completed-reviews', {})[deckId] ?? null
+  const rows = await database.select<Array<{ completed_at: string }>>(
+    'SELECT completed_at FROM review_sessions WHERE deck_id = $1', [deckId],
+  )
+  return rows[0]?.completed_at ?? null
+}
+
+export async function finishQuizSession(settings: AppSettings, reviewedCardIds: readonly string[], completed = false) {
   if (!reviewedCardIds.length) return
   await buildDailyPool(settings, true, new Set(reviewedCardIds))
+  if (completed) {
+    const completedAt = new Date().toISOString()
+    const database = await getDatabase()
+    if (database) {
+      await database.execute('INSERT INTO review_sessions (deck_id, completed_at) VALUES ($1, $2) ON CONFLICT(deck_id) DO UPDATE SET completed_at = excluded.completed_at', [settings.deckId, completedAt])
+    } else {
+      const sessions = readLocal<Record<string, string>>('kanjiwidget:completed-reviews', {})
+      localStorage.setItem('kanjiwidget:completed-reviews', JSON.stringify({ ...sessions, [settings.deckId]: completedAt }))
+    }
+    await emitAppEvent('kanjiwidget:review-completed')
+  }
   await emitAppEvent('kanjiwidget:pool-changed')
 }
 

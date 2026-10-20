@@ -2,12 +2,26 @@ import { describe, expect, it } from 'vitest'
 import { DEFAULT_SETTINGS } from '../domain/defaults'
 import {
   addCardToDeck, buildDailyPool, buildQuizPool, deleteCardFromDeck, deleteCustomDeck,
-  finishQuizSession, getAllCards, getCardsForDeck, getCurrentPoolCardIds, getDecks,
+  finishQuizSession, getAllCards, getCardsForDeck, getCurrentPoolCardIds, getDecks, getLastCompletedReview,
   getManagedCardsForDeck, loadSettings, restoreOriginalCard, reviewCard, saveImportedDeck,
   resetDeckProgress, saveSettings, updateCardInDeck,
 } from './storage'
 
 describe('local data and daily pool', () => {
+  it('records only completed nonempty tests and keeps deck histories separate', async () => {
+    const settings = { ...DEFAULT_SETTINGS }
+    const pool = await buildDailyPool(settings)
+    await finishQuizSession(settings, [pool[0].id])
+    expect(await getLastCompletedReview(settings.deckId)).toBeNull()
+    await finishQuizSession(settings, [], true)
+    expect(await getLastCompletedReview(settings.deckId)).toBeNull()
+    await finishQuizSession(settings, [pool[0].id], true)
+    const completed = await getLastCompletedReview(settings.deckId)
+    expect(Number.isFinite(Date.parse(completed!))).toBe(true)
+    expect(await getLastCompletedReview('jlpt-n4')).toBeNull()
+    await finishQuizSession(settings, [pool[1].id])
+    expect(await getLastCompletedReview(settings.deckId)).toBe(completed)
+  })
   it('preserves the original deck and progress when importing the same name again', async () => {
     const input = [{ sourceId: 'same', headword: '日本', reading: 'にほん', meaning: 'Japan', sentence: '', sentenceReading: '', sentenceMeaning: '' }]
     const first = await saveImportedDeck('Vocabulary', input)

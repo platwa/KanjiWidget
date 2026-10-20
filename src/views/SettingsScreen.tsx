@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import {
-  Bug, Check, ChevronRight, Clock3, FolderOpen, Github, Heart, Info, Layers3,
+  BookOpenCheck, Bug, Check, ChevronRight, Clock3, FolderOpen, Github, Heart, Info, Layers3,
   LibraryBig, Mail, MonitorCog, Palette, Plus, RefreshCcw, RotateCcw, Save,
   ShieldCheck, Trash2, X,
 } from 'lucide-react'
@@ -14,12 +14,13 @@ import {
 } from '../config'
 import { DEFAULT_SETTINGS, DECKS } from '../domain/defaults'
 import { normalizeSettings } from '../domain/settings'
+import { reviewReminderStatus } from '../domain/reviewReminder'
 import type { AppSettings, Deck, DisplayMode, FontSize, ThemeMode } from '../domain/types'
 import { applyDocumentLanguage, cardCountLabel, localizedError, numberLocale, tx } from '../i18n'
-import { getPackagedAutostart, listenAppEvent, openExternal, pickLockscreenFolder, setAutostart } from '../services/platform'
-import { deleteCustomDeck, getDeckProgress, getDecks, loadSettings, resetDeckProgress, saveSettings } from '../services/storage'
+import { getPackagedAutostart, listenAppEvent, openAppWindow, openExternal, pickLockscreenFolder, setAutostart } from '../services/platform'
+import { deleteCustomDeck, getDeckProgress, getDecks, getLastCompletedReview, loadSettings, resetDeckProgress, saveSettings } from '../services/storage'
 
-type SectionId = 'appearance' | 'widget' | 'learning' | 'decks' | 'lockscreen' | 'about'
+type SectionId = 'appearance' | 'widget' | 'learning' | 'quiz' | 'decks' | 'lockscreen' | 'about'
 type Progress = Awaited<ReturnType<typeof getDeckProgress>>
 type ManagerRequest = { deckId: string; cardId?: string; startWithNew?: boolean; key: number }
 
@@ -33,6 +34,7 @@ export function SettingsScreen() {
   const [progress, setProgress] = useState<Record<string, Progress>>({})
   const [notice, setNotice] = useState('')
   const [busy, setBusy] = useState(false)
+  const [lastCompleted, setLastCompleted] = useState<string | null>(null)
   const [supportOpen, setSupportOpen] = useState(false)
   const [managerRequest, setManagerRequest] = useState<ManagerRequest | null>(() => {
     const deckId = initialParams.get('deckId')
@@ -48,6 +50,7 @@ export function SettingsScreen() {
     { id: 'appearance', label: tr('Interface', 'Интерфейс'), icon: Palette },
     { id: 'widget', label: tr('Widget', 'Виджет'), icon: MonitorCog },
     { id: 'learning', label: tr('Learning', 'Обучение'), icon: Clock3 },
+    { id: 'quiz', label: tr('Review', 'Тест'), icon: BookOpenCheck },
     { id: 'decks', label: tr('Decks', 'Колоды'), icon: Layers3 },
     { id: 'lockscreen', label: tr('Lock screen', 'Экран блокировки'), icon: FolderOpen },
     { id: 'about', label: tr('About', 'О программе'), icon: Info },
@@ -79,6 +82,20 @@ export function SettingsScreen() {
     void refreshProgress().catch((reason: unknown) => setNotice(localizedError(DEFAULT_SETTINGS.language, reason)))
   }, [])
   useEffect(() => { applyDocumentLanguage(language) }, [language])
+  useEffect(() => {
+    let cancelled = false
+    const refresh = async () => {
+      try {
+        const completed = await getLastCompletedReview(settings.deckId)
+        if (!cancelled) setLastCompleted(completed)
+      } catch (reason) {
+        if (!cancelled) setNotice(localizedError(language, reason))
+      }
+    }
+    void refresh()
+    const cleanup = listenAppEvent('kanjiwidget:review-completed', refresh)
+    return () => { cancelled = true; void cleanup.then((dispose) => dispose()) }
+  }, [settings.deckId, language])
   useEffect(() => {
     const cleanup = listenAppEvent<{ deckId: string; cardId: string }>('kanjiwidget:edit-card', (request) => {
       setSection('decks')
@@ -114,8 +131,10 @@ export function SettingsScreen() {
       setSaved(normalized)
       setNotice(tr('Settings saved', 'Настройки сохранены'))
       window.setTimeout(() => setNotice(''), 2500)
+      return true
     } catch (reason) {
       setNotice(localizedError(language, reason))
+      return false
     } finally {
       setBusy(false)
     }
@@ -175,6 +194,19 @@ export function SettingsScreen() {
               <Switch checked={settings.autostart} onChange={(value) => update('autostart', value)} label={tr('Start with Windows', 'Запускать вместе с Windows')} />
             </div>
             <div className="settings-card range-card"><div><strong>{tr('Opacity', 'Прозрачность')}</strong><span>{Math.round(settings.opacity * 100)}%</span></div><input aria-label={tr('Widget opacity', 'Прозрачность виджета')} type="range" min="50" max="100" value={settings.opacity * 100} onChange={(event) => update('opacity', Number(event.target.value) / 100)} /></div>
+          </SettingsSection>}
+
+          {section === 'quiz' && <SettingsSection eyebrow={tr('Review', 'Тест')} title={tr('Put your memory to work', 'Проверьте, что запомнили')} description={tr('Recall the word, reveal the answer, then rate how difficult it was. Your ratings update the FSRS schedule.', 'Вспомните слово, откройте ответ и оцените сложность. Оценки обновляют расписание FSRS.')}>
+            <div className="settings-card review-settings">
+              <strong>{decks.find((deck) => deck.id === settings.deckId)?.name}</strong>
+              <p>{reviewReminderStatus(lastCompleted, language).text}</p>
+              <p>{tr('The review uses the current card pool. Space reveals the answer; keys 1–4 rate it. Your progress is saved after each rating, even if you close the test early.', 'Тест использует текущий пул карточек. Пробел открывает ответ, клавиши 1–4 выставляют оценку. Прогресс сохраняется после каждой оценки, даже если закрыть тест раньше.')}</p>
+              <button type="button" className="primary-button" disabled={busy} onClick={async () => {
+                if (dirty && !await handleSave()) return
+                try { await openAppWindow('quiz') } catch (reason) { setNotice(localizedError(language, reason)) }
+              }}><BookOpenCheck size={16} />{dirty ? tr('Save and start review', 'Сохранить и начать тест') : tr('Start review', 'Начать тест')}</button>
+            </div>
+            <div className="settings-card"><Switch checked={settings.reviewReminder} onChange={(value) => update('reviewReminder', value)} label={tr('Review reminder', 'Напоминать о тесте')} description={tr('Show an icon in the widget when this deck has no completed test or the last one was at least 24 hours ago. Hover for details or click to start. No notifications or data collection.', 'Показывать значок в углу виджета, если тест по колоде ещё не завершался или прошли сутки. Наведите курсор для подробностей или нажмите, чтобы начать. Без уведомлений и сбора данных.')} /></div>
           </SettingsSection>}
 
           {section === 'learning' && <SettingsSection eyebrow={tr('Learning', 'Обучение')} title={tr('Your daily rhythm', 'Ваш ежедневный ритм')} description={tr('FSRS schedules reviews close to the moment you are likely to forget.', 'FSRS подбирает интервалы так, чтобы повторения приходились к моменту забывания.')}>

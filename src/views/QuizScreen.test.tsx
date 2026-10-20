@@ -38,7 +38,7 @@ describe('review session transitions', () => {
     expect(close).not.toHaveBeenCalled()
     await act(async () => { resolveReview(createNewState(card.id)) })
     await waitFor(() => expect(close).toHaveBeenCalledTimes(1))
-    expect(storage.finishQuizSession).toHaveBeenCalledWith(DEFAULT_SETTINGS, ['old'])
+    expect(storage.finishQuizSession).toHaveBeenCalledWith(DEFAULT_SETTINGS, ['old'], false)
   })
 
   it('waits for an in-flight rating before restarting and does not consume a new card', async () => {
@@ -56,7 +56,7 @@ describe('review session transitions', () => {
     await act(async () => { resolveReview(createNewState(card.id)) })
     await waitFor(() => expect(storage.buildQuizPool).toHaveBeenCalledTimes(2))
     expect(await view.findByText('ありがとう')).toBeVisible()
-    expect(storage.finishQuizSession).toHaveBeenCalledWith(DEFAULT_SETTINGS, ['old'])
+    expect(storage.finishQuizSession).toHaveBeenCalledWith(DEFAULT_SETTINGS, ['old'], false)
     expect(view.getByRole('button', { name: 'Show answer' })).toBeVisible()
   })
 
@@ -76,5 +76,6 @@ describe('review session transitions', () => {
     button.focus()
     fireEvent.keyDown(button, { key: '4' })
     await waitFor(() => expect(storage.reviewCard).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(storage.finishQuizSession).toHaveBeenCalledWith(DEFAULT_SETTINGS, ['old'], true))
   })
 })
