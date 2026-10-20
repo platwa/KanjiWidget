@@ -149,7 +149,6 @@ export function QuizScreen() {
 
   useEffect(() => {
     let cancelled = false
-    setRevealed(false)
     setIntervals({})
     if (current) {
       void getOrCreateState(current.id).then((state) => {
@@ -177,6 +176,7 @@ export function QuizScreen() {
       if (cards.length === 1) await endSession()
       if (generation !== loadGeneration.current) return
       setSummary((value) => [...value, { cardId: current.id, kanji: current.kanji, rating, due: nextState.due }])
+      setRevealed(false)
       setCards((value) => value.slice(1))
     } catch (reason) {
       if (generation === loadGeneration.current) setError(localizedError(settings.language, reason))
